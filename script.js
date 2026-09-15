@@ -5,8 +5,16 @@ const app=document.getElementById('app'),toastEl=document.getElementById('toast'
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
-// --- XỬ LÝ MÀN HÌNH KHÓA (KẾT NỐI VỚI GOOGLE SHEETS) ---
+// --- XỬ LÝ MÀN HÌNH KHÓA & TRÓI THIẾT BỊ ---
 document.addEventListener('DOMContentLoaded', () => {
+  // 1. Tạo một ID độc nhất cho thiết bị này (nếu máy chưa có)
+  let deviceId = localStorage.getItem('cobi_device_id');
+  if (!deviceId) {
+    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('cobi_device_id', deviceId);
+  }
+
+  // Nếu đã đăng nhập thì giấu màn hình khóa
   if (localStorage.getItem('cobi_unlocked') === 'true') {
     document.getElementById('login-screen').classList.add('hidden');
   }
@@ -20,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogin.textContent = "Đang kiểm tra mã...";
       btnLogin.disabled = true;
 
-      // Gọi lên Google Sheets để lấy danh sách Pass
+      // Gọi lên Google Sheets để lấy danh sách Pass & ID thiết bị
       fetch(GOOGLE_SHEETS_WEB_APP_URL)
         .then(res => res.json())
         .then(data => {
@@ -28,30 +36,57 @@ document.addEventListener('DOMContentLoaded', () => {
           btnLogin.disabled = false;
 
           if (data.accounts) {
-            // Tìm mã khóa trùng khớp
+            // Tìm mã khóa học viên vừa nhập
             const account = data.accounts.find(acc => acc.pass === code);
+            
             if (account) {
-              // Mở khóa thành công
+              // 2. KIỂM TRA MÃ THIẾT BỊ
+              // Nếu GG Sheets đã có ID, và ID đó khác với ID của máy này -> Bị xài chùa
+              if (account.deviceId && account.deviceId !== deviceId) {
+                document.getElementById('login-error').textContent = 'Mã này đã được đăng nhập trên một thiết bị khác!';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+              }
+
+              // 3. KHÓA THIẾT BỊ LÊN GG SHEETS (Nếu là lần đầu đăng nhập)
+              if (!account.deviceId) {
+                fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+                  method: 'POST',
+                  mode: 'no-cors', // Dùng no-cors để gửi nền không bị lỗi bảo mật
+                  headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                  body: JSON.stringify({ action: 'bind_device', pass: code, deviceId: deviceId })
+                });
+              }
+
+              // 4. Mở khóa thành công
               localStorage.setItem('cobi_unlocked', 'true');
               if(account.name) localStorage.setItem('cobi_student_name', account.name);
               
               document.getElementById('login-screen').classList.add('hidden');
               toast('Mở khóa thành công! Chào mừng ' + (account.name || 'bạn'));
               
-              // Lưu sẵn dữ liệu Từ vựng/Ngữ pháp vào Cache để web tải cực nhanh
+              // Load dữ liệu nền cho nhanh
               apiDataCache = data;
               window.CoBiData = window.CoBiData || {};
               window.CoBiData.vocab = window.CoBiData.vocab || {};
               if(data.vocab) window.CoBiData.vocab['hsk4'] = data.vocab;
+
             } else {
               document.getElementById('login-error').textContent = 'Mã khóa không đúng. Vui lòng thử lại!';
               document.getElementById('login-error').style.display = 'block';
             }
-          } else {
-            document.getElementById('login-error').textContent = 'Chưa cấu hình xong Sheet Học Viên.';
-            document.getElementById('login-error').style.display = 'block';
           }
         })
+        .catch(err => {
+          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+          btnLogin.disabled = false;
+          document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+          document.getElementById('login-error').style.display = 'block';
+        });
+    };
+  }
+});
+        
         .catch(err => {
           btnLogin.textContent = "Mở Khóa Tàng Thư Các";
           btnLogin.disabled = false;
