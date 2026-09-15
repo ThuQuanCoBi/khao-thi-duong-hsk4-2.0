@@ -1,4 +1,4 @@
-// --- DÁN LINK WEB APP MỚI NHẤT VÀO ĐÂY ---
+// --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
@@ -7,16 +7,16 @@ let apiDataCache = null;
 
 // --- XỬ LÝ MÀN HÌNH KHÓA & TRÓI THIẾT BỊ ---
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Tạo một ID độc nhất cho thiết bị này (nếu máy chưa có)
+  // 1. Tạo ID độc nhất cho thiết bị này
   let deviceId = localStorage.getItem('cobi_device_id');
   if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
     localStorage.setItem('cobi_device_id', deviceId);
   }
 
-  // Nếu đã đăng nhập thì giấu màn hình khóa
   if (localStorage.getItem('cobi_unlocked') === 'true') {
-    document.getElementById('login-screen').classList.add('hidden');
+    const loginScreen = document.getElementById('login-screen');
+    if (loginScreen) loginScreen.classList.add('hidden');
   }
 
   const btnLogin = document.getElementById('btn-login');
@@ -28,53 +28,30 @@ document.addEventListener('DOMContentLoaded', () => {
       btnLogin.textContent = "Đang kiểm tra mã...";
       btnLogin.disabled = true;
 
-      // Gọi lên Google Sheets để lấy danh sách Pass & ID thiết bị
-      fetch(GOOGLE_SHEETS_WEB_APP_URL)
+      // 2. Gọi lên Google Sheets bằng GET để vừa kiểm tra mã, vừa đổ ID vào Sheet
+      const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
+      
+      fetch(loginUrl)
         .then(res => res.json())
         .then(data => {
           btnLogin.textContent = "Mở Khóa Tàng Thư Các";
           btnLogin.disabled = false;
 
-          if (data.accounts) {
-            // Tìm mã khóa học viên vừa nhập
-            const account = data.accounts.find(acc => acc.pass === code);
+          if (data.ok) {
+            // Mở khóa thành công
+            localStorage.setItem('cobi_unlocked', 'true');
+            if(data.name) localStorage.setItem('cobi_student_name', data.name);
             
-            if (account) {
-              // 2. KIỂM TRA MÃ THIẾT BỊ
-              // Nếu GG Sheets đã có ID, và ID đó khác với ID của máy này -> Bị xài chùa
-              if (account.deviceId && account.deviceId !== deviceId) {
-                document.getElementById('login-error').textContent = 'Mã này đã được đăng nhập trên một thiết bị khác!';
-                document.getElementById('login-error').style.display = 'block';
-                return;
-              }
-
-              // 3. KHÓA THIẾT BỊ LÊN GG SHEETS (Nếu là lần đầu đăng nhập)
-              if (!account.deviceId) {
-                fetch(GOOGLE_SHEETS_WEB_APP_URL, {
-                  method: 'POST',
-                  mode: 'no-cors', // Dùng no-cors để gửi nền không bị lỗi bảo mật
-                  headers: {'Content-Type': 'text/plain;charset=utf-8'},
-                  body: JSON.stringify({ action: 'bind_device', pass: code, deviceId: deviceId })
-                });
-              }
-
-              // 4. Mở khóa thành công
-              localStorage.setItem('cobi_unlocked', 'true');
-              if(account.name) localStorage.setItem('cobi_student_name', account.name);
-              
-              document.getElementById('login-screen').classList.add('hidden');
-              toast('Mở khóa thành công! Chào mừng ' + (account.name || 'bạn'));
-              
-              // Load dữ liệu nền cho nhanh
-              apiDataCache = data;
-              window.CoBiData = window.CoBiData || {};
-              window.CoBiData.vocab = window.CoBiData.vocab || {};
-              if(data.vocab) window.CoBiData.vocab['hsk4'] = data.vocab;
-
-            } else {
-              document.getElementById('login-error').textContent = 'Mã khóa không đúng. Vui lòng thử lại!';
-              document.getElementById('login-error').style.display = 'block';
-            }
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen) loginScreen.classList.add('hidden');
+            toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
+            
+            // Kích hoạt lấy dữ liệu Từ vựng/Ngữ pháp nền
+            fetchSheetData(() => {}); 
+          } else {
+            // Hiển thị lỗi (sai máy hoặc sai mã)
+            document.getElementById('login-error').textContent = data.error || 'Mã khóa không đúng!';
+            document.getElementById('login-error').style.display = 'block';
           }
         })
         .catch(err => {
@@ -86,17 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 });
-        
-        .catch(err => {
-          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
-          btnLogin.disabled = false;
-          document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
-          document.getElementById('login-error').style.display = 'block';
-        });
-    };
-  }
-});
-
 
 function goTop(){window.scrollTo({top:0,left:0,behavior:'auto'});document.documentElement.scrollTop=0;document.body.scrollTop=0}
 function setPhaseTimer(seconds,onEnd){clearTimers();EXAM.remaining=seconds;paintTimer();const deadline=Date.now()+seconds*1000;EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));paintTimer();if(EXAM.remaining<=0){clearInterval(EXAM.timer);EXAM.timer=null;onEnd()}},200);}
@@ -260,7 +226,6 @@ function renderLevelHome(level){
 function renderExamHome(id){
   const data=findExam(id);if(!data){placeholder('Không tìm thấy đề','File đề chưa được đăng ký hoặc đường dẫn không đúng.');return;}EXAM.data=data;
   const meta=data.meta||{}, counts=[['听力',data.listening?.length||0],['阅读',data.reading?.length||0],['书写',(data.writingOrder?.length||0)+(data.writingPicture?.length||0)]];
-  // Tự động điền tên học viên đã lưu
   const savedStudentName = localStorage.getItem('cobi_student_name') || '';
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(meta.level||'HSK')} 模拟考试</span><span class="vi">${esc(meta.title||'Bộ đề')}</span></div><div class="notice">${counts.map(x=>`<strong>${x[0]}:</strong> ${x[1]}题`).join(' · ')}${meta.reviewMinutes?` · <strong>检查:</strong> ${meta.reviewMinutes} phút`:''}</div><div class="card-grid">${counts.map(x=>`<div class="card"><h3>${x[0]} · ${x[1]}题</h3><p>${x[0]==='听力'?'判断正误 + 选择题.':x[0]==='阅读'?'选词填空 + 排列顺序 + 阅读理解.':'完成句子 + 看图造句.'}</p></div>`).join('')}</div><div class="card start-card"><label><strong>姓名 · Họ tên học viên</strong></label><input id="student-name" placeholder="Nhập họ tên" value="${esc(savedStudentName)}"><button class="btn red" id="start-exam">开始考试 · Bắt đầu</button></div><div class="back-row"><a class="btn secondary" href="#hsk4">← Quay lại danh sách đề thi</a></div></section>`;
   document.getElementById('start-exam').onclick=()=>startExam(data);
