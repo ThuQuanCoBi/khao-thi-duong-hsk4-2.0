@@ -341,3 +341,24 @@ html{scroll-behavior:auto;}
 
 /* HSK4 test02 writing support */
 .writing-words{margin:10px 0;line-height:2}.word-chip{display:inline-block;padding:4px 8px;margin:3px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#faf7ef}.writing-text-answer{width:100%;box-sizing:border-box;margin-top:10px}.writing-picture-item{display:block;max-width:100%;width:min(520px,100%);margin:12px auto;border-radius:10px}
+
+/* --- GIAO DIỆN MÀN HÌNH KHÓA --- */
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999; /* Đảm bảo đè lên mọi thứ */
+  background: var(--paper);
+  background-image: radial-gradient(circle at 15% 10%, rgba(181,138,75,.08), transparent 28%), linear-gradient(180deg, #f8f2e7 0%, #efe6d4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.login-box {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+.hidden {
+  display: none !important;
+}
