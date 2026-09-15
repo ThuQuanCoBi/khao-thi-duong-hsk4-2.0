@@ -1,3 +1,33 @@
+// --- CÀI ĐẶT MẬT KHẨU TẠI ĐÂY ---
+const SECRET_CODE = "cobi2026"; // Bạn có thể đổi chữ trong ngoặc kép thành pass bạn muốn
+
+function checkAuth() {
+  // Nếu đã từng nhập đúng pass thì giấu màn hình khóa đi
+  if (localStorage.getItem('cobi_unlocked') === 'true') {
+    document.getElementById('login-screen').classList.add('hidden');
+  }
+}
+
+// Lắng nghe sự kiện bấm nút Mở Khóa
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  
+  const btnLogin = document.getElementById('btn-login');
+  if(btnLogin) {
+    btnLogin.onclick = () => {
+      const code = document.getElementById('access-code').value.trim();
+      if (code.toLowerCase() === SECRET_CODE.toLowerCase()) {
+        localStorage.setItem('cobi_unlocked', 'true'); // Cấp thẻ thông hành
+        document.getElementById('login-screen').classList.add('hidden');
+        toast('Mở khóa Tàng Thư Các thành công!');
+      } else {
+        const err = document.getElementById('login-error');
+        err.textContent = 'Mã khóa không đúng. Vui lòng thử lại!';
+        err.style.display = 'block';
+      }
+    };
+  }
+});
 // --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
 
