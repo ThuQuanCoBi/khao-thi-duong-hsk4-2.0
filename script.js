@@ -1,39 +1,67 @@
-// --- CÀI ĐẶT MẬT KHẨU TẠI ĐÂY ---
-const SECRET_CODE = "cobi2026"; // Bạn có thể đổi chữ trong ngoặc kép thành pass bạn muốn
-
-function checkAuth() {
-  // Nếu đã từng nhập đúng pass thì giấu màn hình khóa đi
-  if (localStorage.getItem('cobi_unlocked') === 'true') {
-    document.getElementById('login-screen').classList.add('hidden');
-  }
-}
-
-// Lắng nghe sự kiện bấm nút Mở Khóa
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
-  
-  const btnLogin = document.getElementById('btn-login');
-  if(btnLogin) {
-    btnLogin.onclick = () => {
-      const code = document.getElementById('access-code').value.trim();
-      if (code.toLowerCase() === SECRET_CODE.toLowerCase()) {
-        localStorage.setItem('cobi_unlocked', 'true'); // Cấp thẻ thông hành
-        document.getElementById('login-screen').classList.add('hidden');
-        toast('Mở khóa Tàng Thư Các thành công!');
-      } else {
-        const err = document.getElementById('login-error');
-        err.textContent = 'Mã khóa không đúng. Vui lòng thử lại!';
-        err.style.display = 'block';
-      }
-    };
-  }
-});
-// --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
-const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
+// --- DÁN LINK WEB APP MỚI NHẤT VÀO ĐÂY ---
+const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/THAY_BANG_LINK_CUA_BAN/exec';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
+
+// --- XỬ LÝ MÀN HÌNH KHÓA (KẾT NỐI VỚI GOOGLE SHEETS) ---
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('cobi_unlocked') === 'true') {
+    document.getElementById('login-screen').classList.add('hidden');
+  }
+
+  const btnLogin = document.getElementById('btn-login');
+  if(btnLogin) {
+    btnLogin.onclick = () => {
+      const code = document.getElementById('access-code').value.trim().toLowerCase();
+      if(!code) return;
+
+      btnLogin.textContent = "Đang kiểm tra mã...";
+      btnLogin.disabled = true;
+
+      // Gọi lên Google Sheets để lấy danh sách Pass
+      fetch(GOOGLE_SHEETS_WEB_APP_URL)
+        .then(res => res.json())
+        .then(data => {
+          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+          btnLogin.disabled = false;
+
+          if (data.accounts) {
+            // Tìm mã khóa trùng khớp
+            const account = data.accounts.find(acc => acc.pass === code);
+            if (account) {
+              // Mở khóa thành công
+              localStorage.setItem('cobi_unlocked', 'true');
+              if(account.name) localStorage.setItem('cobi_student_name', account.name);
+              
+              document.getElementById('login-screen').classList.add('hidden');
+              toast('Mở khóa thành công! Chào mừng ' + (account.name || 'bạn'));
+              
+              // Lưu sẵn dữ liệu Từ vựng/Ngữ pháp vào Cache để web tải cực nhanh
+              apiDataCache = data;
+              window.CoBiData = window.CoBiData || {};
+              window.CoBiData.vocab = window.CoBiData.vocab || {};
+              if(data.vocab) window.CoBiData.vocab['hsk4'] = data.vocab;
+            } else {
+              document.getElementById('login-error').textContent = 'Mã khóa không đúng. Vui lòng thử lại!';
+              document.getElementById('login-error').style.display = 'block';
+            }
+          } else {
+            document.getElementById('login-error').textContent = 'Chưa cấu hình xong Sheet Học Viên.';
+            document.getElementById('login-error').style.display = 'block';
+          }
+        })
+        .catch(err => {
+          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+          btnLogin.disabled = false;
+          document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+          document.getElementById('login-error').style.display = 'block';
+        });
+    };
+  }
+});
+
 
 function goTop(){window.scrollTo({top:0,left:0,behavior:'auto'});document.documentElement.scrollTop=0;document.body.scrollTop=0}
 function setPhaseTimer(seconds,onEnd){clearTimers();EXAM.remaining=seconds;paintTimer();const deadline=Date.now()+seconds*1000;EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));paintTimer();if(EXAM.remaining<=0){clearInterval(EXAM.timer);EXAM.timer=null;onEnd()}},200);}
@@ -127,7 +155,6 @@ function renderVocab(id){
   appView();
 }
 
-// --- GIAO DIỆN NGỮ PHÁP (TÌM KIẾM & GỘP CẤU TRÚC) ---
 function renderNguPhap() {
   if (!apiDataCache || !apiDataCache.grammar) { fetchSheetData(() => renderNguPhap()); return; }
   const grammarList = apiDataCache.grammar.items || [];
@@ -188,10 +215,9 @@ function renderNguPhap() {
   };
 
   document.getElementById('grammar-search').oninput = (e) => renderList(e.target.value);
-  renderList(); // Render ban đầu
+  renderList();
 }
 
-// --- LOGIC THI KHẢO THÍ ĐƯỜNG ---
 function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(level)} 模拟考试</span><span class="vi">Khảo Thí Đường ${esc(level)}</span></div><p class="review-intro">Chọn bộ đề để bắt đầu thi. Hãy chuẩn bị giấy nháp, bút và tai nghe.</p><div class="card-grid">${exams.map((e,i)=>{const id=e.meta?.id||`exam_${i+1}`;e.meta=e.meta||{};e.meta.id=id;return `<a class="card menu-card" href="#exam-${encodeURIComponent(id)}"><div class="symbol">试</div><h3>${esc(e.meta.title||`Đề ${i+1}`)}</h3><p>Nghe · 阅读 · 书写</p><span class="review-arrow">Vào thi →</span></a>`}).join('')||`<div class="card"><div class="notice">${level} hiện chưa có đề được đăng tải.</div></div>`}</div><div class="back-row"><a class="btn secondary" href="#home">← Trang Chủ</a></div></section>`;
@@ -199,7 +225,9 @@ function renderLevelHome(level){
 function renderExamHome(id){
   const data=findExam(id);if(!data){placeholder('Không tìm thấy đề','File đề chưa được đăng ký hoặc đường dẫn không đúng.');return;}EXAM.data=data;
   const meta=data.meta||{}, counts=[['听力',data.listening?.length||0],['阅读',data.reading?.length||0],['书写',(data.writingOrder?.length||0)+(data.writingPicture?.length||0)]];
-  app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(meta.level||'HSK')} 模拟考试</span><span class="vi">${esc(meta.title||'Bộ đề')}</span></div><div class="notice">${counts.map(x=>`<strong>${x[0]}:</strong> ${x[1]}题`).join(' · ')}${meta.reviewMinutes?` · <strong>检查:</strong> ${meta.reviewMinutes} phút`:''}</div><div class="card-grid">${counts.map(x=>`<div class="card"><h3>${x[0]} · ${x[1]}题</h3><p>${x[0]==='听力'?'判断正误 + 选择题.':x[0]==='阅读'?'选词填空 + 排列顺序 + 阅读理解.':'完成句子 + 看图造句.'}</p></div>`).join('')}</div><div class="card start-card"><label><strong>姓名 · Họ tên học viên</strong></label><input id="student-name" placeholder="Nhập họ tên"><button class="btn red" id="start-exam">开始考试 · Bắt đầu</button></div><div class="back-row"><a class="btn secondary" href="#hsk4">← Quay lại danh sách đề thi</a></div></section>`;
+  // Tự động điền tên học viên đã lưu
+  const savedStudentName = localStorage.getItem('cobi_student_name') || '';
+  app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(meta.level||'HSK')} 模拟考试</span><span class="vi">${esc(meta.title||'Bộ đề')}</span></div><div class="notice">${counts.map(x=>`<strong>${x[0]}:</strong> ${x[1]}题`).join(' · ')}${meta.reviewMinutes?` · <strong>检查:</strong> ${meta.reviewMinutes} phút`:''}</div><div class="card-grid">${counts.map(x=>`<div class="card"><h3>${x[0]} · ${x[1]}题</h3><p>${x[0]==='听力'?'判断正误 + 选择题.':x[0]==='阅读'?'选词填空 + 排列顺序 + 阅读理解.':'完成句子 + 看图造句.'}</p></div>`).join('')}</div><div class="card start-card"><label><strong>姓名 · Họ tên học viên</strong></label><input id="student-name" placeholder="Nhập họ tên" value="${esc(savedStudentName)}"><button class="btn red" id="start-exam">开始考试 · Bắt đầu</button></div><div class="back-row"><a class="btn secondary" href="#hsk4">← Quay lại danh sách đề thi</a></div></section>`;
   document.getElementById('start-exam').onclick=()=>startExam(data);
 }
 function allQuestions(){return [...(EXAM.data.listening||[]),...(EXAM.data.reading||[]),...(EXAM.data.writingOrder||[]),...(EXAM.data.writingPicture||[])]}
