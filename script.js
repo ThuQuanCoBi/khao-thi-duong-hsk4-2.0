@@ -1,75 +1,10 @@
-const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzzHWX5KbhanlXDKIDpY3YLmQlhagNpx8MJ8sF-LiVCv1jIsZun1svZaqzRBuCu47KHYA/exec';
+// ĐÃ GẮN SẴN LINK CỦA BẠN
+const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
-// ==========================================
-// 1. HỆ THỐNG MỞ KHÓA & TRÓI THIẾT BỊ
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  const lockScreen = document.getElementById('cobi-lock-screen');
-  const input = document.getElementById('cobi-pass');
-  const btn = document.getElementById('cobi-btn');
-  const err = document.getElementById('cobi-err');
-
-  if (localStorage.getItem('cobi_unlocked') === 'true') {
-    if (lockScreen) lockScreen.style.display = 'none';
-    fetchSheetData(() => {}); 
-  }
-
-  let deviceId = localStorage.getItem('cobi_device_id');
-  if (!deviceId) {
-    deviceId = 'device_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('cobi_device_id', deviceId);
-  }
-
-  function doLogin() {
-    if (!input || !btn) return;
-    const pass = input.value.trim().toLowerCase();
-    if (!pass) return;
-
-    btn.innerText = "Đang kiểm tra...";
-    btn.disabled = true;
-    if(err) err.style.display = "none";
-
-    const url = GOOGLE_SHEETS_WEB_APP_URL + "?action=login&pass=" + encodeURIComponent(pass) + "&deviceId=" + encodeURIComponent(deviceId);
-    
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        btn.innerText = "MỞ KHÓA TÀNG THƯ CÁC";
-        btn.disabled = false;
-        if (data.ok) {
-          localStorage.setItem('cobi_unlocked', 'true');
-          if (data.name) localStorage.setItem('cobi_student_name', data.name);
-          if (lockScreen) lockScreen.style.display = 'none';
-          toast('Mở khóa thành công!');
-          fetchSheetData(() => {});
-        } else {
-          if(err) {
-              err.innerText = data.error || "Mã khóa không đúng!";
-              err.style.display = "block";
-          }
-        }
-      })
-      .catch(e => {
-        btn.innerText = "MỞ KHÓA TÀNG THƯ CÁC";
-        btn.disabled = false;
-        if(err) {
-            err.innerText = "Lỗi mạng hoặc kết nối máy chủ!";
-            err.style.display = "block";
-        }
-      });
-  }
-
-  if(btn) btn.onclick = doLogin;
-  if(input) input.addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
-});
-
-// ==========================================
-// 2. HỆ THỐNG UI & DATA CHUNG
-// ==========================================
 function goTop(){window.scrollTo({top:0,left:0,behavior:'auto'});document.documentElement.scrollTop=0;document.body.scrollTop=0}
 function setPhaseTimer(seconds,onEnd){clearTimers();EXAM.remaining=seconds;paintTimer();const deadline=Date.now()+seconds*1000;EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));paintTimer();if(EXAM.remaining<=0){clearInterval(EXAM.timer);EXAM.timer=null;onEnd()}},200);}
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -141,10 +76,10 @@ function fetchSheetData(callback) {
       placeholder('Lỗi mạng', 'Không thể kết nối với Google Sheets.');
     });
 }
-window.fetchSheetData = fetchSheetData; 
+window.fetchSheetData = fetchSheetData; // Lộ hàm này để login screen có thể gọi
 
 // ==========================================
-// 3. TỪ VỰNG HSK4 TỐI ƯU
+// TỪ VỰNG HSK4 TỐI ƯU
 // ==========================================
 function renderVocab(id){
   if (id === 'hsk4' && !window.CoBiData?.vocab?.['hsk4']) { fetchSheetData(() => renderVocab(id)); return; }
@@ -383,7 +318,7 @@ function renderNguPhap() {
 }
 
 // ==========================================
-// 5. KHẢO THÍ ĐƯỜNG (GIỮ NGUYÊN)
+// 5. KHẢO THÍ ĐƯỜNG (GIỮ NGUYÊN HOÀN TOÀN CỦA BẠN)
 // ==========================================
 function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
