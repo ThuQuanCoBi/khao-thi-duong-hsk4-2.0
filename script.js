@@ -9,69 +9,68 @@ let apiDataCache = null;
 // ==========================================
 // 1. HỆ THỐNG MỞ KHÓA & TRÓI THIẾT BỊ
 // ==========================================
-(function initLogin() {
+// Tự động ẩn màn hình khóa nếu đã đăng nhập từ trước
+if (localStorage.getItem('cobi_unlocked') === 'true') {
+  const loginScreen = document.getElementById('login-screen');
+  if (loginScreen) loginScreen.style.display = 'none';
+}
+
+// Hàm này được gọi trực tiếp từ nút bấm trong HTML
+function cobiLogin() {
+  const accessCodeInput = document.getElementById('access-code');
+  const btnLogin = document.getElementById('btn-login');
+  const errorMsg = document.getElementById('login-error');
+
+  if (!accessCodeInput || !btnLogin) return;
+
+  const code = accessCodeInput.value.trim().toLowerCase();
+  if (!code) {
+    errorMsg.textContent = "Vui lòng nhập mã khóa!";
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  // Tạo ID thiết bị nếu chưa có
   let deviceId = localStorage.getItem('cobi_device_id');
   if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
     localStorage.setItem('cobi_device_id', deviceId);
   }
 
-  const loginScreen = document.getElementById('login-screen');
-  const btnLogin = document.getElementById('btn-login');
-  const accessCodeInput = document.getElementById('access-code');
-  const errorMsg = document.getElementById('login-error');
+  btnLogin.textContent = "Đang kiểm tra mã...";
+  btnLogin.disabled = true;
+  errorMsg.style.display = 'none';
 
-  // Nếu đã đăng nhập thành công từ trước
-  if (localStorage.getItem('cobi_unlocked') === 'true') {
-    if (loginScreen) loginScreen.classList.add('hidden');
-    return;
-  }
+  const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
+  
+  fetch(loginUrl)
+    .then(res => res.json())
+    .then(data => {
+      btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+      btnLogin.disabled = false;
 
-  const processLogin = () => {
-    if(!accessCodeInput) return;
-    const code = accessCodeInput.value.trim().toLowerCase();
-    if(!code) return;
-
-    btnLogin.textContent = "Đang kiểm tra mã...";
-    btnLogin.disabled = true;
-    errorMsg.style.display = 'none';
-
-    const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
-    
-    fetch(loginUrl)
-      .then(res => res.json())
-      .then(data => {
-        btnLogin.textContent = "Mở Khóa Tàng Thư Các";
-        btnLogin.disabled = false;
-
-        if (data.ok) {
-          localStorage.setItem('cobi_unlocked', 'true');
-          if(data.name) localStorage.setItem('cobi_student_name', data.name);
-          
-          if (loginScreen) loginScreen.classList.add('hidden');
-          toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
-          
-          fetchSheetData(() => {}); 
-        } else {
-          errorMsg.textContent = data.error || 'Mã khóa không đúng!';
-          errorMsg.style.display = 'block';
-        }
-      })
-      .catch(err => {
-        btnLogin.textContent = "Mở Khóa Tàng Thư Các";
-        btnLogin.disabled = false;
-        errorMsg.textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+      if (data.ok) {
+        localStorage.setItem('cobi_unlocked', 'true');
+        if (data.name) localStorage.setItem('cobi_student_name', data.name);
+        
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) loginScreen.style.display = 'none';
+        toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
+        
+        fetchSheetData(() => {}); 
+      } else {
+        errorMsg.textContent = data.error || 'Mã khóa không đúng!';
         errorMsg.style.display = 'block';
-      });
-  };
-
-  if(btnLogin) btnLogin.onclick = processLogin;
-  if(accessCodeInput) {
-    accessCodeInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') processLogin();
+      }
+    })
+    .catch(err => {
+      btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+      btnLogin.disabled = false;
+      errorMsg.textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+      errorMsg.style.display = 'block';
+      console.error(err);
     });
-  }
-})();
+}
 
 // ==========================================
 // 2. HỆ THỐNG UI & DATA CHUNG
@@ -475,4 +474,4 @@ function renderResult(r){app.innerHTML=`<section class="page"><div class="result
 function saveResultLocally(r){try{const key='cobi_hsk_results';const old=JSON.parse(localStorage.getItem(key)||'[]');old.push(r);localStorage.setItem(key,JSON.stringify(old));}catch(e){console.warn('Không lưu được localStorage',e)}}
 function sendResultToGoogleSheets(r){if(!GOOGLE_SHEETS_WEB_APP_URL)return;const payload={...r,answers:JSON.stringify(r.answers),wrong:JSON.stringify(r.wrong)};fetch(GOOGLE_SHEETS_WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}).then(()=>toast('Đã gửi kết quả lên Google Sheets.')).catch(()=>toast('Không gửi được Google Sheets; kết quả vẫn được lưu trên máy.'))}
 
-window.addEventListener('hashchange',route);route();
+window.addEventListener('hashchange',route);window.addEventListener('DOMContentLoaded', route);
