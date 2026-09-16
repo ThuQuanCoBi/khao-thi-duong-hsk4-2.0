@@ -5,29 +5,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tàng Thư Các - HSK4</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    #cobi-lock-screen {
-      position: fixed; inset: 0;
-      z-index: 9999999; 
-      background: #f6f0e3;
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
-    }
-  </style>
 </head>
 <body>
   
-  <div id="cobi-lock-screen">
+  <!-- ========================================== -->
+  <!-- Ổ KHÓA ĐỘC LẬP TÙY CHỈNH (KHÔNG SỢ SẬP CODE) -->
+  <!-- ========================================== -->
+  <div id="cobi-lock-screen" style="position:fixed;inset:0;z-index:9999999;background:#f6f0e3;display:flex;align-items:center;justify-content:center;padding:20px;">
      <div style="background:#fffaf0;padding:35px 25px;border-radius:8px;text-align:center;box-shadow:0 12px 35px rgba(63,45,28,.15);max-width:400px;width:100%;border:1px solid #d8c9ad;">
         <div style="margin:0 auto 20px;width:52px;height:52px;display:grid;place-items:center;color:#fff9ec;background:#9e3f37;border-radius:7px;font-family:'Ma Shan Zheng',cursive;font-size:22px;transform:rotate(-3deg);">CoBi</div>
         <h2 style="font-family:'Noto Serif',serif;color:#29251f;margin-bottom:10px;">Nhập Mã Khóa</h2>
         <p style="color:#756c5e;margin-bottom:25px;font-size:15px;">Không gian này chỉ dành riêng cho học viên Hán Ngữ CoBi.</p>
         <input type="password" id="cobi-pass" style="width:100%;padding:12px;margin-bottom:15px;text-align:center;border:1px solid #d8c9ad;border-radius:4px;font-size:16px;box-sizing:border-box;" placeholder="Nhập mã khóa...">
-        <button id="cobi-btn" style="width:100%;padding:12px;background:#9e3f37;color:white;border:none;border-radius:4px;font-size:16px;cursor:pointer;font-family:'Noto Serif',serif;">MỞ KHÓA TÀNG THƯ CÁC</button>
+        <button id="cobi-btn" style="width:100%;padding:12px;background:#9e3f37;color:white;border:none;border-radius:4px;font-size:16px;cursor:pointer;font-family:'Noto Serif',serif;">MỞ KHÓA</button>
         <p id="cobi-err" style="color:#d35d55;margin-top:15px;display:none;font-weight:bold;font-size:14px;"></p>
      </div>
   </div>
 
+  <script>
+  (function(){
+      // NẾU ĐÃ MỞ KHÓA TRƯỚC ĐÓ -> ẨN LUÔN
+      if(localStorage.getItem('cobi_unlocked') === 'true') {
+          document.getElementById('cobi-lock-screen').style.display = 'none';
+      }
+
+      // ĐÃ GẮN SẴN LINK CỦA BẠN
+      const API_URL = "https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec";
+
+      let deviceId = localStorage.getItem('cobi_device_id');
+      if(!deviceId) {
+          deviceId = 'device_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('cobi_device_id', deviceId);
+      }
+
+      const btn = document.getElementById('cobi-btn');
+      const input = document.getElementById('cobi-pass');
+      const err = document.getElementById('cobi-err');
+
+      function doLogin() {
+          const pass = input.value.trim().toLowerCase();
+          if(!pass) return;
+
+          btn.innerText = "Đang kiểm tra...";
+          btn.disabled = true;
+          err.style.display = "none";
+
+          fetch(API_URL + "?action=login&pass=" + encodeURIComponent(pass) + "&deviceId=" + encodeURIComponent(deviceId))
+          .then(res => res.json())
+          .then(data => {
+              if(data.ok) {
+                  localStorage.setItem('cobi_unlocked', 'true');
+                  if(data.name) localStorage.setItem('cobi_student_name', data.name);
+                  document.getElementById('cobi-lock-screen').style.display = 'none';
+                  if(window.fetchSheetData) window.fetchSheetData(()=>{}); 
+              } else {
+                  err.innerText = data.error || "Mã khóa không đúng!";
+                  err.style.display = "block";
+                  btn.innerText = "MỞ KHÓA";
+                  btn.disabled = false;
+              }
+          })
+          .catch(e => {
+              err.innerText = "Lỗi mạng hoặc Link Google Apps Script sai!";
+              err.style.display = "block";
+              btn.innerText = "MỞ KHÓA";
+              btn.disabled = false;
+          });
+      }
+
+      btn.onclick = doLogin;
+      input.onkeypress = function(e) { if(e.key === 'Enter') doLogin(); };
+  })();
+  </script>
+
+  <!-- ========================================== -->
+  <!-- CẤU TRÚC WEB CHÍNH CỦA BẠN -->
+  <!-- ========================================== -->
   <div class="ink-wash wash-left" aria-hidden="true"></div>
   <div class="ink-wash wash-right" aria-hidden="true"></div>
   <div class="floating-ornaments" aria-hidden="true">
