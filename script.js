@@ -1,14 +1,15 @@
-// --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
+// --- BẠN DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
-
+';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
-// --- XỬ LÝ MÀN HÌNH KHÓA & TRÓI THIẾT BỊ ---
-(function initLoginSystem() {
-  // 1. Tạo ID độc nhất cho thiết bị này
+// ==========================================
+// 1. HỆ THỐNG MỞ KHÓA & TRÓI THIẾT BỊ
+// ==========================================
+(function initLogin() {
   let deviceId = localStorage.getItem('cobi_device_id');
   if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
@@ -18,19 +19,22 @@ let apiDataCache = null;
   const loginScreen = document.getElementById('login-screen');
   const btnLogin = document.getElementById('btn-login');
   const accessCodeInput = document.getElementById('access-code');
+  const errorMsg = document.getElementById('login-error');
 
-  // Nếu đã đăng nhập thì giấu màn hình khóa
+  // Nếu đã đăng nhập thành công từ trước
   if (localStorage.getItem('cobi_unlocked') === 'true') {
-    if (loginScreen) loginScreen.style.display = 'none';
+    if (loginScreen) loginScreen.classList.add('hidden');
+    return;
   }
 
-  // Hàm xử lý đăng nhập
-  const handleLogin = () => {
+  const processLogin = () => {
+    if(!accessCodeInput) return;
     const code = accessCodeInput.value.trim().toLowerCase();
     if(!code) return;
 
     btnLogin.textContent = "Đang kiểm tra mã...";
     btnLogin.disabled = true;
+    errorMsg.style.display = 'none';
 
     const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
     
@@ -44,36 +48,34 @@ let apiDataCache = null;
           localStorage.setItem('cobi_unlocked', 'true');
           if(data.name) localStorage.setItem('cobi_student_name', data.name);
           
-          if (loginScreen) loginScreen.style.display = 'none';
+          if (loginScreen) loginScreen.classList.add('hidden');
           toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
           
           fetchSheetData(() => {}); 
         } else {
-          document.getElementById('login-error').textContent = data.error || 'Mã khóa không đúng!';
-          document.getElementById('login-error').style.display = 'block';
+          errorMsg.textContent = data.error || 'Mã khóa không đúng!';
+          errorMsg.style.display = 'block';
         }
       })
       .catch(err => {
         btnLogin.textContent = "Mở Khóa Tàng Thư Các";
         btnLogin.disabled = false;
-        document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
-        document.getElementById('login-error').style.display = 'block';
+        errorMsg.textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+        errorMsg.style.display = 'block';
       });
   };
 
-  // Gắn chức năng cho nút bấm
-  if(btnLogin) {
-    btnLogin.onclick = handleLogin;
-  }
-
-  // Cho phép ấn phím Enter để đăng nhập tiện hơn
+  if(btnLogin) btnLogin.onclick = processLogin;
   if(accessCodeInput) {
-    accessCodeInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') handleLogin();
+    accessCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') processLogin();
     });
   }
 })();
 
+// ==========================================
+// 2. HỆ THỐNG UI & DATA CHUNG
+// ==========================================
 function goTop(){window.scrollTo({top:0,left:0,behavior:'auto'});document.documentElement.scrollTop=0;document.body.scrollTop=0}
 function setPhaseTimer(seconds,onEnd){clearTimers();EXAM.remaining=seconds;paintTimer();const deadline=Date.now()+seconds*1000;EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));paintTimer();if(EXAM.remaining<=0){clearInterval(EXAM.timer);EXAM.timer=null;onEnd()}},200);}
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -147,7 +149,7 @@ function fetchSheetData(callback) {
 }
 
 // ==========================================
-// HỆ THỐNG TỪ VỰNG TỐI ƯU HOÀN TOÀN
+// 3. TỪ VỰNG HSK4
 // ==========================================
 function renderVocab(id){
   if (id === 'hsk4' && !window.CoBiData?.vocab?.['hsk4']) { fetchSheetData(() => renderVocab(id)); return; }
@@ -157,15 +159,13 @@ function renderVocab(id){
   const storageKey=`cobi_vocab_${data.id}`; 
   const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');
   
-  // Trạng thái độc lập trong hàm renderVocab
   let mode = 'list'; 
-  let currentWordId = sessionStorage.getItem(`${storageKey}_current_id`) || words[0].id;
+  let currentWordId = sessionStorage.getItem(`${storageKey}_current_id`) || words[0]?.id;
   let quiz=[], quizIndex=0, quizScore=0;
   
   const speak=text=>{if(!text)return;if(!('speechSynthesis' in window))return toast('Trình duyệt không hỗ trợ phát âm.');speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=.82;speechSynthesis.speak(u)};
   const shuffle=a=>[...a].sort(()=>Math.random()-.5);
   
-  // Tìm từ CHƯA HỌC tiếp theo
   const getNextUnlearned = (startId) => {
       let startIdx = words.findIndex(w => w.id === startId);
       if (startIdx < 0) startIdx = 0;
@@ -220,8 +220,6 @@ function renderVocab(id){
         </td></tr>`).join('');
         
         document.querySelectorAll('[data-speak]').forEach(b=>b.onclick=()=>speak(b.dataset.speak));
-        
-        // Sự kiện: Bấm biểu tượng Sách để nhảy sang tab Học Từ
         document.querySelectorAll('.jump-btn').forEach(b => b.onclick = () => {
             currentWordId = b.dataset.jump;
             sessionStorage.setItem(`${storageKey}_current_id`, currentWordId);
@@ -234,14 +232,10 @@ function renderVocab(id){
     
     if(mode === 'study') {
       let w = words.find(x => x.id === currentWordId);
-      
-      // Nếu từ rỗng (vừa học xong từ cuối cùng), thử tìm từ chưa học khác
       if (!w) {
           currentWordId = getNextUnlearned(words[0].id);
           w = words.find(x => x.id === currentWordId);
       }
-
-      // Đã học hết sạch từ vựng
       if (!w) {
           box.innerHTML = `<div class="study-wrap"><div class="notice" style="margin-bottom: 20px;">Chúc mừng! Bạn đã hoàn thành toàn bộ ${total} từ vựng. Hãy sang phần Kiểm tra để ôn tập nhé.</div><button class="btn red" onclick="document.querySelector('[data-mode=quiz]').click()">Làm bài kiểm tra</button></div>`;
           return;
@@ -282,26 +276,20 @@ function renderVocab(id){
   }
 
   function startVocabQuiz(){
-    // CHỈ CHỌN CÁC TỪ ĐÃ ĐƯỢC ĐÁNH DẤU "ĐÃ HỌC"
     const learnedWords = words.filter(w => saved[w.id]);
-    
     if (learnedWords.length < 4) {
         const box = document.getElementById('vocab-content');
         if(box) box.innerHTML = `<div class="quiz-result"><div class="notice" style="margin-bottom:20px;">Bạn cần đánh dấu "Đã học" ít nhất 4 từ vựng để mở khóa bài kiểm tra. (Hiện tại: ${learnedWords.length}/4)</div><button class="btn secondary" onclick="document.querySelector('[data-mode=study]').click()">Quay lại học từ</button></div>`;
         return;
     }
     quiz = shuffle(learnedWords).slice(0, Math.min(10, learnedWords.length));
-    quizIndex = 0; 
-    quizScore = 0; 
-    renderVocabContent();
+    quizIndex = 0; quizScore = 0; renderVocabContent();
   }
-
   function nextQuiz(){ quizIndex++; renderVocabContent(); }
 
   function renderQuizContent(){
     const box = document.getElementById('vocab-content');
     if(!quiz.length) { startVocabQuiz(); return; }
-    
     if(quizIndex >= quiz.length){
         box.innerHTML=`<div class="quiz-result"><div class="quiz-score">${quizScore}/${quiz.length}</div><h3>Hoàn thành lượt ôn</h3><p>Mỗi lượt gồm ${quiz.length} từ được chọn ngẫu nhiên từ kho từ đã học.</p><button class="btn red" id="quiz-again">Làm lượt mới</button></div>`;
         document.getElementById('quiz-again').onclick=startVocabQuiz;
@@ -309,7 +297,6 @@ function renderVocab(id){
     }
     
     const w = quiz[quizIndex];
-    // Đáp án sai được bốc từ TOÀN BỘ từ vựng để làm nhiễu
     const candidates = shuffle([w, ...shuffle(words.filter(x => x.id !== w.id)).slice(0, 3)]);
     const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
     let title='', prompt='', body='';
@@ -334,6 +321,9 @@ function renderVocab(id){
   appView();
 }
 
+// ==========================================
+// 4. NGỮ PHÁP HSK4
+// ==========================================
 function renderNguPhap() {
   if (!apiDataCache || !apiDataCache.grammar) { fetchSheetData(() => renderNguPhap()); return; }
   const grammarList = apiDataCache.grammar.items || [];
@@ -397,6 +387,9 @@ function renderNguPhap() {
   renderList();
 }
 
+// ==========================================
+// 5. KHẢO THÍ ĐƯỜNG
+// ==========================================
 function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(level)} 模拟考试</span><span class="vi">Khảo Thí Đường ${esc(level)}</span></div><p class="review-intro">Chọn bộ đề để bắt đầu thi. Hãy chuẩn bị giấy nháp, bút và tai nghe.</p><div class="card-grid">${exams.map((e,i)=>{const id=e.meta?.id||`exam_${i+1}`;e.meta=e.meta||{};e.meta.id=id;return `<a class="card menu-card" href="#exam-${encodeURIComponent(id)}"><div class="symbol">试</div><h3>${esc(e.meta.title||`Đề ${i+1}`)}</h3><p>Nghe · 阅读 · 书写</p><span class="review-arrow">Vào thi →</span></a>`}).join('')||`<div class="card"><div class="notice">${level} hiện chưa có đề được đăng tải.</div></div>`}</div><div class="back-row"><a class="btn secondary" href="#home">← Trang Chủ</a></div></section>`;
