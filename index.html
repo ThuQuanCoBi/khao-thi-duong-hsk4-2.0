@@ -5,41 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tàng Thư Các - HSK4</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    #login-screen {
-      position: fixed; inset: 0;
-      z-index: 2147483647; 
-      background: #f6f0e3;
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
-    }
-    .login-box {
-      max-width: 400px; width: 100%; text-align: center;
-      background: rgba(255,250,240,.98);
-      border: 1px solid #d8c9ad;
-      box-shadow: 0 12px 35px rgba(63, 45, 28, .15);
-      padding: 35px 25px; border-radius: 8px;
-    }
-  </style>
 </head>
 <body>
-  <!-- MÀN HÌNH KHÓA -->
-  <div id="login-screen">
-    <div class="login-box">
-      <div class="brand-seal" style="margin: 0 auto 20px; width: 52px; height: 52px; display: grid; place-items: center; color: #fff9ec; background: #9e3f37; border-radius: 7px; font-family: 'Ma Shan Zheng', cursive; font-size: 22px; transform: rotate(-3deg);">CoBi</div>
+  <!-- MÀN HÌNH KHÓA ĐƯỢC CODE CỨNG ĐỘC LẬP HOÀN TOÀN -->
+  <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999; background: #f6f0e3; display: flex; align-items: center; justify-content: center;">
+    <div style="max-width: 400px; width: 90%; background: #fffaf0; border: 1px solid #d8c9ad; padding: 35px 25px; border-radius: 8px; text-align: center; box-shadow: 0 12px 35px rgba(63, 45, 28, 0.15);">
+      <div style="margin: 0 auto 20px; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; color: #fff9ec; background: #9e3f37; border-radius: 7px; font-family: 'Ma Shan Zheng', cursive; font-size: 22px; transform: rotate(-3deg);">CoBi</div>
       <h2 style="font-family: 'Noto Serif', serif; margin-bottom: 10px; color: #29251f;">Nhập Mã Khóa</h2>
       <p style="color: #756c5e; margin-bottom: 25px; font-size: 15px;">Không gian này chỉ dành riêng cho học viên Hán Ngữ CoBi.</p>
       
-      <!-- Đã gắn trực tiếp sự kiện ấn phím Enter -->
-      <input type="password" id="access-code" class="answer-input" placeholder="Nhập mã khóa..." style="text-align: center; margin-bottom: 15px; font-size: 16px; padding: 12px; width: 100%; box-sizing: border-box;" onkeypress="if(event.key === 'Enter') cobiLogin()">
+      <input type="password" id="access-code" placeholder="Nhập mã khóa..." style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px; border: 1px solid #d8c9ad; border-radius: 4px; box-sizing: border-box; text-align: center; background: #fffdf7; color: #333;" onkeypress="if(event.key === 'Enter') window.cobiLogin()">
       
-      <!-- Đã gắn trực tiếp sự kiện click -->
-      <button class="btn red" id="btn-login" style="width: 100%; padding: 12px; font-size: 16px;" onclick="cobiLogin()">Mở Khóa Tàng Thư Các</button>
+      <button id="btn-login" style="width: 100%; padding: 12px; background: #9e3f37; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Noto Serif', serif;" onclick="window.cobiLogin()">Mở Khóa Tàng Thư Các</button>
       
       <p id="login-error" style="color: #d35d55; margin-top: 15px; display: none; font-size: 14px; font-weight: bold;"></p>
     </div>
   </div>
 
+  <!-- CÁC HỌA TIẾT CŨ GIỮ NGUYÊN -->
   <div class="ink-wash wash-left" aria-hidden="true"></div>
   <div class="ink-wash wash-right" aria-hidden="true"></div>
   <div class="floating-ornaments" aria-hidden="true">
