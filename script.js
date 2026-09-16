@@ -1,5 +1,6 @@
 // --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
+';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
@@ -132,56 +133,59 @@ function fetchSheetData(callback) {
 }
 
 // ==========================================
-// HỆ THỐNG TỪ VỰNG TỐI ƯU MỚI
+// HỆ THỐNG TỪ VỰNG TỐI ƯU HOÀN TOÀN
 // ==========================================
-let currentVocabMode = 'list';
-let currentWordId = null; 
-
 function renderVocab(id){
   if (id === 'hsk4' && !window.CoBiData?.vocab?.['hsk4']) { fetchSheetData(() => renderVocab(id)); return; }
   const data=findVocab(id); if(!data){placeholder('Lỗi dữ liệu','Không tìm thấy dữ liệu từ vựng.');return;}
-  const words=(data.items||[]).map((w,i)=>({...w,id:w.id??`${data.id}_${i+1}`})); const total=words.length; const storageKey=`cobi_vocab_${data.id}`; const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');
-  let quiz=[],quizIndex=0,quizScore=0;
+  const words=(data.items||[]).map((w,i)=>({...w,id:w.id??`${data.id}_${i+1}`})); 
+  const total=words.length; 
+  const storageKey=`cobi_vocab_${data.id}`; 
+  const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');
+  
+  // Trạng thái độc lập trong hàm renderVocab
+  let mode = 'list'; 
+  let currentWordId = sessionStorage.getItem(`${storageKey}_current_id`) || words[0].id;
+  let quiz=[], quizIndex=0, quizScore=0;
   
   const speak=text=>{if(!text)return;if(!('speechSynthesis' in window))return toast('Trình duyệt không hỗ trợ phát âm.');speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=.82;speechSynthesis.speak(u)};
   const shuffle=a=>[...a].sort(()=>Math.random()-.5);
   
-  // Thuật toán tìm từ chưa học tiếp theo (vòng tròn)
+  // Tìm từ CHƯA HỌC tiếp theo
   const getNextUnlearned = (startId) => {
       let startIdx = words.findIndex(w => w.id === startId);
-      if (startIdx < 0) startIdx = -1;
+      if (startIdx < 0) startIdx = 0;
       for (let i = 1; i <= total; i++) {
           let checkIdx = (startIdx + i) % total;
           if (!saved[words[checkIdx].id]) return words[checkIdx].id;
       }
-      return null; // Đã học hết
+      return null; 
   };
 
-  const markLearned=id=>{
-    saved[id]=true;
-    localStorage.setItem(storageKey,JSON.stringify(saved));
-    if(currentVocabMode === 'study') {
-        currentWordId = getNextUnlearned(id);
-    }
+  const markLearned = (id) => {
+    saved[id] = true;
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+    currentWordId = getNextUnlearned(id);
+    if(currentWordId) sessionStorage.setItem(`${storageKey}_current_id`, currentWordId);
     appView(); 
   };
 
-  const appView=()=>{
+  const appView = () => {
     const learned=Object.keys(saved).filter(k=>saved[k]).length;
     app.innerHTML=`<section class="page vocab-page">
       <div class="section-title"><span class="cn">${esc(data.level||'词汇')}</span><span class="vi">${esc(data.title||'Từ vựng')} · ${total} mục</span></div>
       <div class="vocab-toolbar"><a class="btn secondary" href="#home">← Trang chủ</a><div class="vocab-progress">Đã đánh dấu học: <b>${learned}/${total}</b></div></div>
       <div class="vocab-tabs">
-        <button class="vocab-tab ${currentVocabMode==='list'?'active':''}" data-mode="list">Danh sách</button>
-        <button class="vocab-tab ${currentVocabMode==='study'?'active':''}" data-mode="study">Học từ</button>
-        <button class="vocab-tab ${currentVocabMode==='quiz'?'active':''}" data-mode="quiz">Kiểm tra</button>
+        <button class="vocab-tab ${mode==='list'?'active':''}" data-mode="list">Danh sách</button>
+        <button class="vocab-tab ${mode==='study'?'active':''}" data-mode="study">Học từ</button>
+        <button class="vocab-tab ${mode==='quiz'?'active':''}" data-mode="quiz">Kiểm tra</button>
       </div>
       <div id="vocab-content"></div>
     </section>`;
     
-    document.querySelectorAll('.vocab-tab').forEach(b=>b.onclick=()=>{
-      currentVocabMode=b.dataset.mode;
-      if(currentVocabMode==='quiz') startVocabQuiz();
+    document.querySelectorAll('.vocab-tab').forEach(b => b.onclick = () => {
+      mode = b.dataset.mode;
+      if (mode === 'quiz') startVocabQuiz();
       else appView();
     });
     renderVocabContent();
@@ -190,8 +194,7 @@ function renderVocab(id){
   function renderVocabContent(){
     const box=document.getElementById('vocab-content');if(!box)return;
     
-    // 1. MÀN HÌNH DANH SÁCH (CÓ NÚT HỌC NHANH)
-    if(currentVocabMode==='list'){
+    if(mode === 'list') {
       box.innerHTML=`<div class="vocab-search-row"><input id="vocab-search" class="vocab-search" placeholder="Tìm chữ Hán, pinyin hoặc nghĩa tiếng Việt..."><span class="vocab-count">${total} từ</span></div><div class="vocab-table-wrap"><table class="vocab-table"><thead><tr><th>#</th><th>汉字</th><th>Pinyin</th><th>Nghĩa</th><th>Hành động</th></tr></thead><tbody id="vocab-body"></tbody></table></div>`;
       const fill=()=>{
         const q=(document.getElementById('vocab-search').value||'').trim().toLowerCase();
@@ -201,28 +204,32 @@ function renderVocab(id){
           <button class="icon-btn" data-speak="${esc(w.hanzi)}" title="Nghe">🔊</button>
           <button class="icon-btn jump-btn" data-jump="${esc(w.id)}" title="Học từ này">📖</button>
         </td></tr>`).join('');
+        
         document.querySelectorAll('[data-speak]').forEach(b=>b.onclick=()=>speak(b.dataset.speak));
-        // Xử lý nút học nhanh (Nhảy sang tab Học từ)
-        document.querySelectorAll('.jump-btn').forEach(b=>b.onclick=() => {
+        
+        // Sự kiện: Bấm biểu tượng Sách để nhảy sang tab Học Từ
+        document.querySelectorAll('.jump-btn').forEach(b => b.onclick = () => {
             currentWordId = b.dataset.jump;
-            currentVocabMode = 'study';
+            sessionStorage.setItem(`${storageKey}_current_id`, currentWordId);
+            mode = 'study';
             appView(); 
         });
       };
       document.getElementById('vocab-search').oninput=fill; fill(); return;
     }
     
-    // 2. MÀN HÌNH HỌC TỪ (LOẠI BỎ TỪ ĐÃ HỌC)
-    if(currentVocabMode==='study'){
+    if(mode === 'study') {
       let w = words.find(x => x.id === currentWordId);
-      // Nếu chưa chọn từ nào, hoặc từ hiện tại đã học (và không bị force từ list), thì tự nhảy sang từ chưa học
-      if (!w || saved[w.id]) {
-          currentWordId = getNextUnlearned(currentWordId);
+      
+      // Nếu từ rỗng (vừa học xong từ cuối cùng), thử tìm từ chưa học khác
+      if (!w) {
+          currentWordId = getNextUnlearned(words[0].id);
           w = words.find(x => x.id === currentWordId);
       }
 
+      // Đã học hết sạch từ vựng
       if (!w) {
-          box.innerHTML = `<div class="study-wrap"><div class="notice">Chúc mừng! Bạn đã hoàn thành toàn bộ ${total} từ vựng. Hãy sang phần Kiểm tra để ôn tập nhé.</div><button class="btn red" onclick="document.querySelector('[data-mode=quiz]').click()">Làm bài kiểm tra</button></div>`;
+          box.innerHTML = `<div class="study-wrap"><div class="notice" style="margin-bottom: 20px;">Chúc mừng! Bạn đã hoàn thành toàn bộ ${total} từ vựng. Hãy sang phần Kiểm tra để ôn tập nhé.</div><button class="btn red" onclick="document.querySelector('[data-mode=quiz]').click()">Làm bài kiểm tra</button></div>`;
           return;
       }
       
@@ -237,7 +244,7 @@ function renderVocab(id){
       
       document.getElementById('learn-word').onclick=()=>{
           if (saved[w.id]) {
-              saved[w.id] = false; // Tính năng nhỏ: Bỏ đánh dấu nếu lỡ bấm nhầm
+              saved[w.id] = false; 
               localStorage.setItem(storageKey,JSON.stringify(saved));
               appView();
           } else {
@@ -245,49 +252,69 @@ function renderVocab(id){
           }
       };
       document.getElementById('next-word').onclick=()=>{
-          currentWordId = getNextUnlearned(w.id);
-          renderVocabContent();
+          const nextId = getNextUnlearned(w.id);
+          if(nextId) {
+             currentWordId = nextId;
+             sessionStorage.setItem(`${storageKey}_current_id`, currentWordId);
+             appView();
+          } else {
+             toast('Bạn đã học hết từ vựng!');
+          }
       };
       return;
     }
-    if(currentVocabMode==='quiz') renderQuizContent();
+    
+    if(mode === 'quiz') renderQuizContent();
   }
 
-  // 3. MÀN HÌNH KIỂM TRA (CHỈ KIỂM TRA TỪ ĐÃ HỌC)
   function startVocabQuiz(){
+    // CHỈ CHỌN CÁC TỪ ĐÃ ĐƯỢC ĐÁNH DẤU "ĐÃ HỌC"
     const learnedWords = words.filter(w => saved[w.id]);
+    
     if (learnedWords.length < 4) {
-        const box=document.getElementById('vocab-content');
-        if(box) box.innerHTML = `<div class="quiz-result"><div class="notice">Bạn cần đánh dấu "Đã học" ít nhất 4 từ vựng để mở khóa bài kiểm tra. (Hiện tại: ${learnedWords.length}/4)</div><button class="btn secondary" onclick="document.querySelector('[data-mode=study]').click()">Quay lại học từ</button></div>`;
+        const box = document.getElementById('vocab-content');
+        if(box) box.innerHTML = `<div class="quiz-result"><div class="notice" style="margin-bottom:20px;">Bạn cần đánh dấu "Đã học" ít nhất 4 từ vựng để mở khóa bài kiểm tra. (Hiện tại: ${learnedWords.length}/4)</div><button class="btn secondary" onclick="document.querySelector('[data-mode=study]').click()">Quay lại học từ</button></div>`;
         return;
     }
-    // Chỉ tạo câu hỏi từ những từ đã học
-    quiz=shuffle(learnedWords).slice(0,Math.min(10,learnedWords.length));
-    quizIndex=0; quizScore=0; renderVocabContent();
+    quiz = shuffle(learnedWords).slice(0, Math.min(10, learnedWords.length));
+    quizIndex = 0; 
+    quizScore = 0; 
+    renderVocabContent();
   }
-  function nextQuiz(){quizIndex++;renderVocabContent()}
+
+  function nextQuiz(){ quizIndex++; renderVocabContent(); }
+
   function renderQuizContent(){
-    const box=document.getElementById('vocab-content');if(!quiz.length){startVocabQuiz();return}
-    if(quizIndex>=quiz.length){box.innerHTML=`<div class="quiz-result"><div class="quiz-score">${quizScore}/${quiz.length}</div><h3>Hoàn thành lượt ôn</h3><p>Mỗi lượt gồm ${quiz.length} từ được chọn ngẫu nhiên từ kho từ đã học.</p><button class="btn red" id="quiz-again">Làm lượt mới</button></div>`;document.getElementById('quiz-again').onclick=startVocabQuiz;return}
+    const box = document.getElementById('vocab-content');
+    if(!quiz.length) { startVocabQuiz(); return; }
     
-    const w=quiz[quizIndex];
-    // Đáp án sai được lấy ngẫu nhiên từ toàn bộ danh sách để có độ khó cao hơn
-    const candidates=shuffle([w,...shuffle(words.filter(x=>x.id!==w.id)).slice(0,3)]);
-    const type=total>=4?shuffle(['meaning','pinyin','hanzi','match'])[0]:'meaning';
-    let title='',prompt='',body='';
+    if(quizIndex >= quiz.length){
+        box.innerHTML=`<div class="quiz-result"><div class="quiz-score">${quizScore}/${quiz.length}</div><h3>Hoàn thành lượt ôn</h3><p>Mỗi lượt gồm ${quiz.length} từ được chọn ngẫu nhiên từ kho từ đã học.</p><button class="btn red" id="quiz-again">Làm lượt mới</button></div>`;
+        document.getElementById('quiz-again').onclick=startVocabQuiz;
+        return;
+    }
+    
+    const w = quiz[quizIndex];
+    // Đáp án sai được bốc từ TOÀN BỘ từ vựng để làm nhiễu
+    const candidates = shuffle([w, ...shuffle(words.filter(x => x.id !== w.id)).slice(0, 3)]);
+    const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
+    let title='', prompt='', body='';
+
     if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.meaning)}</button>`).join('')}
     if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.pinyin)}</button>`).join('')}
     if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)}</button>`).join('')}
     if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)} — ${esc(x.pinyin)}</button>`).join('')}
+    
     box.innerHTML=`<div class="quiz-card"><div class="quiz-meta"><span>Câu ${quizIndex+1}/${quiz.length}</span><b>${title}</b></div>${prompt}<div class="quiz-options">${body}</div></div>`;
     document.getElementById('quiz-speak')?.addEventListener('click',e=>{e.stopPropagation();speak(w.hanzi)});
-    document.querySelectorAll('.quiz-option').forEach(b=>b.onclick=()=>{
-      const ok=String(b.dataset.answer)===String(w.id);
-      if(ok)quizScore++;
-      document.querySelectorAll('.quiz-option').forEach(x=>x.disabled=true);
-      b.classList.add(ok?'correct':'wrong');
-      if(!ok)[...document.querySelectorAll('.quiz-option')].find(x=>String(x.dataset.answer)===String(w.id))?.classList.add('correct');
-      setTimeout(nextQuiz,600)
+    
+    document.querySelectorAll('.quiz-option').forEach(b => b.onclick = () => {
+      const ok = String(b.dataset.answer) === String(w.id);
+      if(ok) quizScore++;
+      document.querySelectorAll('.quiz-option').forEach(x => x.disabled = true);
+      b.classList.add(ok ? 'correct' : 'wrong');
+      if(!ok) [...document.querySelectorAll('.quiz-option')].find(x => String(x.dataset.answer) === String(w.id))?.classList.add('correct');
+      setTimeout(nextQuiz, 600);
     });
   }
   appView();
