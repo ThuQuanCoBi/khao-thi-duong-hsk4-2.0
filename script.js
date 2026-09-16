@@ -1,21 +1,25 @@
 // --- BẠN DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ---
-const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
+const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec
+';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
 // ==========================================
-// 1. HỆ THỐNG MỞ KHÓA & TRÓI THIẾT BỊ
+// 1. HỆ THỐNG MỞ KHÓA TOÀN CỤC (GLOBAL)
 // ==========================================
-// Tự động ẩn màn hình khóa nếu đã đăng nhập từ trước
-if (localStorage.getItem('cobi_unlocked') === 'true') {
-  const loginScreen = document.getElementById('login-screen');
-  if (loginScreen) loginScreen.style.display = 'none';
-}
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('cobi_unlocked') === 'true') {
+    const loginScreen = document.getElementById('login-screen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    // Load ngầm dữ liệu
+    fetchSheetData(() => {}); 
+  }
+});
 
-// Hàm này được gọi trực tiếp từ nút bấm trong HTML
-function cobiLogin() {
+// Hàm được gắn vĩnh viễn vào window để HTML gọi không bao giờ xịt
+window.cobiLogin = function() {
   const accessCodeInput = document.getElementById('access-code');
   const btnLogin = document.getElementById('btn-login');
   const errorMsg = document.getElementById('login-error');
@@ -29,7 +33,7 @@ function cobiLogin() {
     return;
   }
 
-  // Tạo ID thiết bị nếu chưa có
+  // Tạo ID thiết bị nếu máy chưa có
   let deviceId = localStorage.getItem('cobi_device_id');
   if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
@@ -69,7 +73,7 @@ function cobiLogin() {
       errorMsg.style.display = 'block';
       console.error(err);
     });
-}
+};
 
 // ==========================================
 // 2. HỆ THỐNG UI & DATA CHUNG
@@ -473,4 +477,4 @@ function renderResult(r){app.innerHTML=`<section class="page"><div class="result
 function saveResultLocally(r){try{const key='cobi_hsk_results';const old=JSON.parse(localStorage.getItem(key)||'[]');old.push(r);localStorage.setItem(key,JSON.stringify(old));}catch(e){console.warn('Không lưu được localStorage',e)}}
 function sendResultToGoogleSheets(r){if(!GOOGLE_SHEETS_WEB_APP_URL)return;const payload={...r,answers:JSON.stringify(r.answers),wrong:JSON.stringify(r.wrong)};fetch(GOOGLE_SHEETS_WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}).then(()=>toast('Đã gửi kết quả lên Google Sheets.')).catch(()=>toast('Không gửi được Google Sheets; kết quả vẫn được lưu trên máy.'))}
 
-window.addEventListener('hashchange',route);window.addEventListener('DOMContentLoaded', route);
+window.addEventListener('hashchange',route);route();
