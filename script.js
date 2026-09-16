@@ -1,64 +1,78 @@
 // --- DÁN LINK WEB APP TỪ GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
-';
+
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
 // --- XỬ LÝ MÀN HÌNH KHÓA & TRÓI THIẾT BỊ ---
-document.addEventListener('DOMContentLoaded', () => {
+(function initLoginSystem() {
+  // 1. Tạo ID độc nhất cho thiết bị này
   let deviceId = localStorage.getItem('cobi_device_id');
   if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
     localStorage.setItem('cobi_device_id', deviceId);
   }
 
-  if (localStorage.getItem('cobi_unlocked') === 'true') {
-    const loginScreen = document.getElementById('login-screen');
-    if (loginScreen) loginScreen.classList.add('hidden');
-  }
-
+  const loginScreen = document.getElementById('login-screen');
   const btnLogin = document.getElementById('btn-login');
-  if(btnLogin) {
-    btnLogin.onclick = () => {
-      const code = document.getElementById('access-code').value.trim().toLowerCase();
-      if(!code) return;
+  const accessCodeInput = document.getElementById('access-code');
 
-      btnLogin.textContent = "Đang kiểm tra mã...";
-      btnLogin.disabled = true;
-
-      const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
-      
-      fetch(loginUrl)
-        .then(res => res.json())
-        .then(data => {
-          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
-          btnLogin.disabled = false;
-
-          if (data.ok) {
-            localStorage.setItem('cobi_unlocked', 'true');
-            if(data.name) localStorage.setItem('cobi_student_name', data.name);
-            
-            const loginScreen = document.getElementById('login-screen');
-            if (loginScreen) loginScreen.classList.add('hidden');
-            toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
-            
-            fetchSheetData(() => {}); 
-          } else {
-            document.getElementById('login-error').textContent = data.error || 'Mã khóa không đúng!';
-            document.getElementById('login-error').style.display = 'block';
-          }
-        })
-        .catch(err => {
-          btnLogin.textContent = "Mở Khóa Tàng Thư Các";
-          btnLogin.disabled = false;
-          document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
-          document.getElementById('login-error').style.display = 'block';
-        });
-    };
+  // Nếu đã đăng nhập thì giấu màn hình khóa
+  if (localStorage.getItem('cobi_unlocked') === 'true') {
+    if (loginScreen) loginScreen.style.display = 'none';
   }
-});
+
+  // Hàm xử lý đăng nhập
+  const handleLogin = () => {
+    const code = accessCodeInput.value.trim().toLowerCase();
+    if(!code) return;
+
+    btnLogin.textContent = "Đang kiểm tra mã...";
+    btnLogin.disabled = true;
+
+    const loginUrl = GOOGLE_SHEETS_WEB_APP_URL + '?action=login&pass=' + encodeURIComponent(code) + '&deviceId=' + encodeURIComponent(deviceId);
+    
+    fetch(loginUrl)
+      .then(res => res.json())
+      .then(data => {
+        btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+        btnLogin.disabled = false;
+
+        if (data.ok) {
+          localStorage.setItem('cobi_unlocked', 'true');
+          if(data.name) localStorage.setItem('cobi_student_name', data.name);
+          
+          if (loginScreen) loginScreen.style.display = 'none';
+          toast('Mở khóa thành công! Chào mừng ' + (data.name || 'bạn'));
+          
+          fetchSheetData(() => {}); 
+        } else {
+          document.getElementById('login-error').textContent = data.error || 'Mã khóa không đúng!';
+          document.getElementById('login-error').style.display = 'block';
+        }
+      })
+      .catch(err => {
+        btnLogin.textContent = "Mở Khóa Tàng Thư Các";
+        btnLogin.disabled = false;
+        document.getElementById('login-error').textContent = 'Lỗi mạng! Không thể kết nối máy chủ.';
+        document.getElementById('login-error').style.display = 'block';
+      });
+  };
+
+  // Gắn chức năng cho nút bấm
+  if(btnLogin) {
+    btnLogin.onclick = handleLogin;
+  }
+
+  // Cho phép ấn phím Enter để đăng nhập tiện hơn
+  if(accessCodeInput) {
+    accessCodeInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  }
+})();
 
 function goTop(){window.scrollTo({top:0,left:0,behavior:'auto'});document.documentElement.scrollTop=0;document.body.scrollTop=0}
 function setPhaseTimer(seconds,onEnd){clearTimers();EXAM.remaining=seconds;paintTimer();const deadline=Date.now()+seconds*1000;EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));paintTimer();if(EXAM.remaining<=0){clearInterval(EXAM.timer);EXAM.timer=null;onEnd()}},200);}
