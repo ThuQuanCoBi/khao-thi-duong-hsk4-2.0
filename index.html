@@ -5,20 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tàng Thư Các - HSK4</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Bảo vệ màn hình khóa ở mức tuyệt đối, chống mọi lỗi đè layer */
+    #login-screen {
+      position: fixed; inset: 0;
+      z-index: 2147483647; 
+      background: #f6f0e3;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #login-screen.hidden { display: none !important; }
+    .login-box {
+      max-width: 400px; width: 100%; text-align: center;
+      background: rgba(255,250,240,.98);
+      border: 1px solid #d8c9ad;
+      box-shadow: 0 12px 35px rgba(63, 45, 28, .15);
+      padding: 35px 25px; border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
- <!-- MÀN HÌNH KHÓA BẢO VỆ -->
-  <div id="login-screen" style="position: fixed; inset: 0; z-index: 999999; background: #f6f0e3; display: flex; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 400px; width: 100%; text-align: center; pointer-events: auto;">
-      <div class="brand-seal" style="margin: 0 auto 20px;">CoBi</div>
-      <h2 style="font-family: 'Noto Serif', serif;">Nhập Mã Khóa</h2>
-      <p style="color: #756c5e; margin-bottom: 20px;">Không gian này chỉ dành riêng cho học viên Hán Ngữ CoBi.</p>
-      <input type="password" id="access-code" class="answer-input" placeholder="Nhập mã khóa..." style="text-align: center; margin-bottom: 15px; font-size: 16px;">
-      <button class="btn red" id="btn-login" style="width: 100%;">Mở Khóa Tàng Thư Các</button>
-      <p id="login-error" style="color: #d35d55; margin-top: 15px; display: none; font-size: 14px;"></p>
+  <!-- MÀN HÌNH KHÓA -->
+  <div id="login-screen">
+    <div class="login-box">
+      <div class="brand-seal" style="margin: 0 auto 20px; width: 52px; height: 52px; display: grid; place-items: center; color: #fff9ec; background: #9e3f37; border-radius: 7px; font-family: 'Ma Shan Zheng', cursive; font-size: 22px; transform: rotate(-3deg);">CoBi</div>
+      <h2 style="font-family: 'Noto Serif', serif; margin-bottom: 10px; color: #29251f;">Nhập Mã Khóa</h2>
+      <p style="color: #756c5e; margin-bottom: 25px; font-size: 15px;">Không gian này chỉ dành riêng cho học viên Hán Ngữ CoBi.</p>
+      <input type="password" id="access-code" class="answer-input" placeholder="Nhập mã khóa..." style="text-align: center; margin-bottom: 15px; font-size: 16px; padding: 12px; width: 100%; box-sizing: border-box;">
+      <button class="btn red" id="btn-login" style="width: 100%; padding: 12px; font-size: 16px;">Mở Khóa Tàng Thư Các</button>
+      <p id="login-error" style="color: #d35d55; margin-top: 15px; display: none; font-size: 14px; font-weight: bold;"></p>
     </div>
   </div>
-  <!-- Các họa tiết cổ phong giữ nguyên -->
+
   <div class="ink-wash wash-left" aria-hidden="true"></div>
   <div class="ink-wash wash-right" aria-hidden="true"></div>
   <div class="floating-ornaments" aria-hidden="true">
@@ -67,8 +85,8 @@
     </div>
     <div class="footer-bottom">© 2026 Hán Ngữ CoBi · Tàng Thư Các HSK4</div>
   </footer>
+  
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <!-- Giữ nguyên đường dẫn data của bạn -->
   <script src="data/loader-v7.js?v=20260903-v7"></script>
   <script src="script.js"></script>
 </body>
