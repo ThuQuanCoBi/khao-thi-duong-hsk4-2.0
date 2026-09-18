@@ -291,10 +291,10 @@ function renderVocab(id){
     const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
     let title='', prompt='', body='';
 
-    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.meaning)}</button>`).join('')}
-    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.pinyin)}</button>`).join('')}
-    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)}</button>`).join('')}
-    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)} — ${esc(x.pinyin)}</button>`).join('')}
+    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.meaning)}</button>`).join('')}
+    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.pinyin)}</button>`).join('')}
+    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)}</button>`).join('')}
+    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)} — ${esc(w.pinyin)}</button>`).join('')}
     
     box.innerHTML=`<div class="quiz-card"><div class="quiz-meta"><span>Câu ${quizIndex+1}/${quiz.length}</span><b>${title}</b></div>${prompt}<div class="quiz-options">${body}</div></div>`;
     document.getElementById('quiz-speak')?.addEventListener('click',e=>{e.stopPropagation();speak(w.hanzi)});
@@ -455,7 +455,7 @@ function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.revi
 function paintReviewTimer(){const el=document.getElementById('review-timer');if(el){el.textContent=formatTime(EXAM.remaining);el.classList.toggle('warning',EXAM.remaining<=60)}}
 function formatTime(s){s=Math.max(0,Math.ceil(s));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 
-// --- XỬ LÝ LƯU KẾT QUẢ ĐÃ CHỈNH SỬA (SỐ CÂU ĐÚNG & GỘP CÂU SAI/CHƯA LÀM) ---
+// --- XỬ LÝ NỘP BÀI VÀ GỬI LÊN URL GET ĐỂ TRÁNH CHẶN POST ---
 function submitExam(){if(EXAM.submitted)return;EXAM.submitted=true;clearTimers();if(EXAM.audio)EXAM.audio.pause();let r=calculateResult();saveResultLocally(r);renderResult(r);sendResultToGoogleSheets(r)}
 function normWriting(v){return norm(v).replace(/[。！？!?，,、；;：:‘’“”"'（）()《》<>]/g,'')}
 function answerCorrect(q){if(q.type==='writing_text')return normWriting(EXAM.answers[q.id])===normWriting(q.answer);return norm(EXAM.answers[q.id])===norm(q.answer)}
@@ -502,7 +502,6 @@ function saveResultLocally(r){try{const key='cobi_hsk_results';const old=JSON.pa
 function sendResultToGoogleSheets(r){
   if(!GOOGLE_SHEETS_WEB_APP_URL) return;
   
-  // Tổng hợp đáp án phần viết từ câu 86 đến 100
   let dapAnViet = [];
   for (let i = 86; i <= 100; i++) {
     if (r.answers[i] !== undefined && String(r.answers[i]).trim() !== '') {
@@ -510,26 +509,25 @@ function sendResultToGoogleSheets(r){
     }
   }
 
-  const payload = {
+  // Xây dựng đường dẫn URL GET để gửi dữ liệu trực tiếp 100% qua Google Apps Script mà không bị chặn no-cors
+  const queryParams = new URLSearchParams({
     action: 'submit_exam',
     studentName: r.studentName,
     level: r.level,
     examId: r.examId,
     listeningCorrectText: `${r.listeningCorrect}/${r.listeningTotal}`,
     readingCorrectText: `${r.readingCorrect}/${r.readingTotal}`,
-    writingAnswers: dapAnViet.join(' | '), // Dùng dấu gạch đứng để ngăn cách các câu viết cho gọn gàng trong 1 ô
+    writingAnswers: dapAnViet.join(' | '),
     totalScore: r.autoScore,
     wrongAndUnanswered: r.wrongDetails
-  };
+  });
 
-  fetch(GOOGLE_SHEETS_WEB_APP_URL,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(payload)
-  })
-  .then(()=>toast('Đã gửi kết quả lên Google Sheets.'))
-  .catch(()=>toast('Lỗi mạng, kết quả đã được lưu tạm trên máy.'));
+  const submitUrl = GOOGLE_SHEETS_WEB_APP_URL + '?' + queryParams.toString();
+
+  // Dùng Image hoặc fetch trực tiếp để kích hoạt lệnh GET lên Google Script
+  fetch(submitUrl, { method: 'GET', mode: 'no-cors' })
+    .then(()=>toast('Đã gửi kết quả lên Google Sheets.'))
+    .catch(()=>toast('Lỗi mạng, kết quả đã được lưu tạm trên máy.'));
 }
 
 window.addEventListener('hashchange',route);window.addEventListener('DOMContentLoaded', route);
