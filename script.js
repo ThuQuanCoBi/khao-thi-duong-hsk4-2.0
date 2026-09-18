@@ -1,4 +1,4 @@
-// --- BẠN DÁN LẠI LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ---
+// --- BẠN DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ---
 const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwotWNfwoNDMZWABbdifr5KGD05Qb3E0Txp-TOETXoP48Yb-v91zciX0VdMgzzUlWoXLw/exec';
 
 const app=document.getElementById('app'),toastEl=document.getElementById('toast');
@@ -291,10 +291,10 @@ function renderVocab(id){
     const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
     let title='', prompt='', body='';
 
-    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.meaning)}</button>`).join('')}
-    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.pinyin)}</button>`).join('')}
-    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)}</button>`).join('')}
-    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)} — ${esc(x.pinyin)}</button>`).join('')}
+    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.meaning)}</button>`).join('')}
+    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.pinyin)}</button>`).join('')}
+    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)}</button>`).join('')}
+    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)} — ${esc(w.pinyin)}</button>`).join('')}
     
     box.innerHTML=`<div class="quiz-card"><div class="quiz-meta"><span>Câu ${quizIndex+1}/${quiz.length}</span><b>${title}</b></div>${prompt}<div class="quiz-options">${body}</div></div>`;
     document.getElementById('quiz-speak')?.addEventListener('click',e=>{e.stopPropagation();speak(w.hanzi)});
@@ -374,6 +374,9 @@ function renderNguPhap() {
   renderList();
 }
 
+// ==========================================
+// 6. KHẢO THÍ ĐƯỜNG (GIỮ NGUYÊN 100% CỦA BẠN)
+// ==========================================
 function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(level)} 模拟考试</span><span class="vi">Khảo Thí Đường ${esc(level)}</span></div><p class="review-intro">Chọn bộ đề để bắt đầu thi. Hãy chuẩn bị giấy nháp, bút và tai nghe.</p><div class="card-grid">${exams.map((e,i)=>{const id=e.meta?.id||`exam_${i+1}`;e.meta=e.meta||{};e.meta.id=id;return `<a class="card menu-card" href="#exam-${encodeURIComponent(id)}"><div class="symbol">试</div><h3>${esc(e.meta.title||`Đề ${i+1}`)}</h3><p>Nghe · 阅读 · 书写</p><span class="review-arrow">Vào thi →</span></a>`}).join('')||`<div class="card"><div class="notice">${level} hiện chưa có đề được đăng tải.</div></div>`}</div><div class="back-row"><a class="btn secondary" href="#home">← Trang Chủ</a></div></section>`;
@@ -452,32 +455,72 @@ function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.revi
 function paintReviewTimer(){const el=document.getElementById('review-timer');if(el){el.textContent=formatTime(EXAM.remaining);el.classList.toggle('warning',EXAM.remaining<=60)}}
 function formatTime(s){s=Math.max(0,Math.ceil(s));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 
-// --- XỬ LÝ LƯU KẾT QUẢ RÚT GỌN LÊN GOOGLE SHEETS ---
+// --- XỬ LÝ LƯU KẾT QUẢ ĐÃ CHỈNH SỬA (SỐ CÂU ĐÚNG & GỘP CÂU SAI/CHƯA LÀM) ---
 function submitExam(){if(EXAM.submitted)return;EXAM.submitted=true;clearTimers();if(EXAM.audio)EXAM.audio.pause();let r=calculateResult();saveResultLocally(r);renderResult(r);sendResultToGoogleSheets(r)}
 function normWriting(v){return norm(v).replace(/[。！？!?，,、；;：:‘’“”"'（）()《》<>]/g,'')}
 function answerCorrect(q){if(q.type==='writing_text')return normWriting(EXAM.answers[q.id])===normWriting(q.answer);return norm(EXAM.answers[q.id])===norm(q.answer)}
-function calculateResult(){let l=EXAM.data.listening,r=EXAM.data.reading,w=EXAM.data.writingOrder,p=EXAM.data.writingPicture;let lc=l.filter(answerCorrect).length,rc=r.filter(answerCorrect).length,wc=w.filter(answerCorrect).length;const m=EXAM.data.meta||{},lp=Number(m.listeningPoint??2.22),rp=Number(m.readingPoint??2.5),wp=Number(m.writingOrderPoint??6);let wrong=[...l,...r,...w].filter(q=>q.answer&&!answerCorrect(q)).map(q=>({id:q.id,student:EXAM.answers[q.id]||'',correct:q.answer}));return{examId:EXAM.data.meta.title,level:EXAM.data.meta.level,studentName:EXAM.studentName,submittedAt:new Date().toISOString(),listeningCorrect:lc,listeningTotal:l.length,readingCorrect:rc,readingTotal:r.length,writingOrderCorrect:wc,writingOrderTotal:w.length,pictureAnswered:p.filter(isDone).length,pictureTotal:p.length,autoScore:+(lc*lp+rc*rp+wc*wp).toFixed(2),wrong,answers:{...EXAM.answers}}}
-function renderResult(r){app.innerHTML=`<section class="page"><div class="result-box"><div class="section-title"><span class="cn">考试结果</span><span class="vi">Kết quả luyện đề</span></div><div class="score-big">${r.autoScore}</div><p class="result-note">Học viên: <b>${esc(r.studentName)}</b><br>Điểm tự động, chưa gồm điểm 96–100 do giáo viên chấm.</p><table class="score-table"><tr><th>Phần</th><th>Đúng</th><th>Điểm</th></tr><tr><td>Nghe</td><td>${r.listeningCorrect}/${r.listeningTotal}</td><td>${(r.listeningCorrect*Number(EXAM.data.meta?.listeningPoint??2.22)).toFixed(2)}</td></tr><tr><td>Đọc</td><td>${r.readingCorrect}/${r.readingTotal}</td><td>${(r.readingCorrect*Number(EXAM.data.meta?.readingPoint??2.5)).toFixed(2)}</td></tr><tr><td>Viết 86–95</td><td>${r.writingOrderCorrect}/${r.writingOrderTotal}</td><td>${(r.writingOrderCorrect*Number(EXAM.data.meta?.writingOrderPoint??6)).toFixed(2)}</td></tr><tr><td>Viết 96–100</td><td>${r.pictureAnswered}/${r.pictureTotal}</td><td>GV chấm</td></tr></table><h3>Câu sai / chưa làm</h3><div class="wrong-list">${r.wrong.length?r.wrong.map(w=>`<div class="wrong-item"><b>Câu ${w.id}</b> · Bạn: <code>${esc(w.student\vert{}\vert{}'Chưa làm')}</code> · Đáp án: <code>${esc(w.correct)}</code></div>`).join(''):'Không có câu sai ở phần tự chấm.'}</div><div class="notice">${GOOGLE_SHEETS_WEB_APP_URL?'Kết quả đã được gửi lên Google Sheets.':''}</div><a class="btn secondary" href="#exam-${encodeURIComponent(EXAM.data.meta.id)}">Làm lại</a></div></section>`}
+function calculateResult(){
+  let l=EXAM.data.listening, r=EXAM.data.reading, w=EXAM.data.writingOrder, p=EXAM.data.writingPicture;
+  let lc=l.filter(answerCorrect).length, rc=r.filter(answerCorrect).length, wc=w.filter(answerCorrect).length;
+  const m=EXAM.data.meta||{}, lp=Number(m.listeningPoint??2.22), rp=Number(m.readingPoint??2.5), wp=Number(m.writingOrderPoint??6);
+  
+  // Tổng hợp câu sai và câu chưa làm (tất cả các câu trắc nghiệm/sắp xếp có đáp án mà học viên trả lời sai hoặc bỏ trống)
+  let allTestQuestions = [...l, ...r, ...w];
+  let wrongAndUnanswered = [];
+  allTestQuestions.forEach(q => {
+    if (q.answer) {
+      let studentAns = EXAM.answers[q.id];
+      if (studentAns === undefined || String(studentAns).trim() === '') {
+        wrongAndUnanswered.push(`Câu ${q.id}: Chưa làm (Đúng: ${q.answer})`);
+      } else if (!answerCorrect(q)) {
+        wrongAndUnanswered.push(`Câu ${q.id}: Sai (Chọn: ${studentAns}, Đúng: ${q.answer})`);
+      }
+    }
+  });
+
+  return{
+    examId:EXAM.data.meta.title,
+    level:EXAM.data.meta.level,
+    studentName:EXAM.studentName,
+    submittedAt:new Date().toISOString(),
+    listeningCorrect:lc,
+    listeningTotal:l.length,
+    readingCorrect:rc,
+    readingTotal:r.length,
+    writingOrderCorrect:wc,
+    writingOrderTotal:w.length,
+    pictureAnswered:p.filter(isDone).length,
+    pictureTotal:p.length,
+    autoScore:+(lc*lp+rc*rp+wc*wp).toFixed(2),
+    wrongDetails: wrongAndUnanswered.join('\n'),
+    answers:{...EXAM.answers}
+  }
+}
+
+function renderResult(r){app.innerHTML=`<section class="page"><div class="result-box"><div class="section-title"><span class="cn">考试结果</span><span class="vi">Kết quả luyện đề</span></div><div class="score-big">${r.autoScore}</div><p class="result-note">Học viên: <b>${esc(r.studentName)}</b><br>Điểm tự động, chưa gồm điểm 96–100 do giáo viên chấm.</p><table class="score-table"><tr><th>Phần</th><th>Đúng</th><th>Điểm</th></tr><tr><td>Nghe</td><td>${r.listeningCorrect}/${r.listeningTotal}</td><td>${(r.listeningCorrect*Number(EXAM.data.meta?.listeningPoint??2.22)).toFixed(2)}</td></tr><tr><td>Đọc</td><td>${r.readingCorrect}/${r.readingTotal}</td><td>${(r.readingCorrect*Number(EXAM.data.meta?.readingPoint??2.5)).toFixed(2)}</td></tr><tr><td>Viết 86–95</td><td>${r.writingOrderCorrect}/${r.writingOrderTotal}</td><td>${(r.writingOrderCorrect*Number(EXAM.data.meta?.writingOrderPoint??6)).toFixed(2)}</td></tr><tr><td>Viết 96–100</td><td>${r.pictureAnswered}/${r.pictureTotal}</td><td>GV chấm</td></tr></table><h3>Câu sai / chưa làm</h3><div class="wrong-list">${r.wrongDetails ? r.wrongDetails.split('\n').map(item => `<div class="wrong-item">${esc(item)}</div>`).join('') : 'Không có câu sai.'}</div><div class="notice">${GOOGLE_SHEETS_WEB_APP_URL?'Kết quả đã được gửi lên Google Sheets.':''}</div><a class="btn secondary" href="#exam-${encodeURIComponent(EXAM.data.meta.id)}">Làm lại</a></div></section>`}
 function saveResultLocally(r){try{const key='cobi_hsk_results';const old=JSON.parse(localStorage.getItem(key)||'[]');old.push(r);localStorage.setItem(key,JSON.stringify(old));}catch(e){console.warn('Không lưu được localStorage',e)}}
 
 function sendResultToGoogleSheets(r){
   if(!GOOGLE_SHEETS_WEB_APP_URL) return;
+  
+  // Tổng hợp đáp án phần viết (câu 86-100)
   let dapAnViet = [];
   for (let i = 86; i <= 100; i++) {
     if (r.answers[i]) dapAnViet.push(`Câu ${i}: ${r.answers[i]}`);
   }
-  let formatSai = r.wrong.map(w => `Câu ${w.id}: ${w.student || 'Trống'} (Đúng: ${w.correct})`).join('\n');
+
   const payload = {
     action: 'submit_exam',
     studentName: r.studentName,
     level: r.level,
     examId: r.examId,
-    listeningResult: `${r.listeningCorrect}/${r.listeningTotal}`,
-    readingResult: `${r.readingCorrect}/${r.readingTotal}`,
-    writingAnswers: dapAnViet.join('\n'),
-    totalScore: r.autoScore,
-    wrongDetails: formatSai
+    listeningCorrectText: `${r.listeningCorrect}/${r.listeningTotal}`, // Số câu nghe đúng
+    readingCorrectText: `${r.readingCorrect}/${r.readingTotal}`,       // Số câu đọc đúng
+    writingAnswers: dapAnViet.join('\n'),                              // Đáp án phần viết
+    totalScore: r.autoScore,                                           // Tổng điểm
+    wrongAndUnanswered: r.wrongDetails                                 // Câu sai và chưa làm
   };
+
   fetch(GOOGLE_SHEETS_WEB_APP_URL,{
     method:'POST',
     mode:'no-cors',
