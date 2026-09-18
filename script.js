@@ -291,10 +291,10 @@ function renderVocab(id){
     const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
     let title='', prompt='', body='';
 
-    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.meaning)}</button>`).join('')}
-    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.pinyin)}</button>`).join('')}
-    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)}</button>`).join('')}
-    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)} — ${esc(w.pinyin)}</button>`).join('')}
+    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.meaning)}</button>`).join('')}
+    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.pinyin)}</button>`).join('')}
+    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)}</button>`).join('')}
+    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)} — ${esc(x.pinyin)}</button>`).join('')}
     
     box.innerHTML=`<div class="quiz-card"><div class="quiz-meta"><span>Câu ${quizIndex+1}/${quiz.length}</span><b>${title}</b></div>${prompt}<div class="quiz-options">${body}</div></div>`;
     document.getElementById('quiz-speak')?.addEventListener('click',e=>{e.stopPropagation();speak(w.hanzi)});
@@ -451,7 +451,7 @@ function setAnswer(id,v){EXAM.answers[id]=v;renderPalette();updateProgress()}
 function renderPalette(){let e=document.getElementById('palette');if(!e)return;let qs=sectionQuestions(EXAM.section);e.innerHTML=qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('');e.querySelectorAll('button').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump)))}
 function jumpToQuestion(id){const sec=questionSection(id); if(EXAM.section===sec && !EXAM.reviewMode){document.getElementById('q-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});return;} if(EXAM.section!=='review'){toast('Câu này thuộc phần khác.');return;} if(Date.now()>=EXAM.reviewDeadline){submitExam();return;} if(sec==='listening')renderListening(true);else if(sec==='reading')renderReading(true);else renderWriting(true); setTimeout(()=>document.getElementById('q-'+id)?.scrollIntoView({behavior:'auto',block:'start'}),80);}
 function updateProgress(){let e=document.getElementById('progress-fill');if(!e)return;let qs=sectionQuestions(EXAM.section);e.style.width=qs.length?`${qs.filter(isDone).length/qs.length*100}%`:'0%'}
-function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.reviewMode=false; let qs=allQuestions(),un=qs.filter(q=>!isDone(q)); app.innerHTML=`<section class="page"><div class="review-top"><div class="section-title"><span class="cn">检查答案</span><span class="vi">Rà soát · còn ${un.length} câu chưa làm</span></div><div class="review-timer" id="review-timer">05:00</div></div><div class="card"><p><b class="green-text">Xanh</b> = đã làm · <b class="red-text">Đỏ</b> = chưa làm. Bấm số câu để xem và sửa đáp án.</p><div class="palette review-palette">${qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('')}</div></div><div class="card"><button class="btn red" id="submit-now">提交答案 · Nộp bài ngay</button></div></section>`; document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump))); document.getElementById('submit-now').onclick=submitExam; EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000)); paintReviewTimer(); EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000));paintReviewTimer();if(EXAM.remaining<=0){clearTimers();submitExam()}},200);}
+function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.reviewMode=false; let qs=allQuestions(),un=qs.filter(q=>!isDone(q)); app.innerHTML=`<section class="page"><div class="review-top"><div class="section-title"><span class="cn">检查答案</span><span class="vi">Rà soát · còn ${un.length} câu chưa làm</span></div><div class="review-timer" id="review-timer">05:00</div></div><div class="card"><p><b class="green-text">Xanh</b> = đã làm · <b class="red-text">Đỏ</b> = chưa làm. Bấm số câu để xem và sửa đáp án.</p><div class="palette review-palette">${qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('')}</div></div><div class="card"><button class="btn red" id="submit-now">提交答案 · Nộp bài ngay</button></div></section>`; document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump))); document.getElementById('submit-now'].onclick=submitExam; EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000)); paintReviewTimer(); EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000));paintReviewTimer();if(EXAM.remaining<=0){clearTimers();submitExam()}},200);}
 function paintReviewTimer(){const el=document.getElementById('review-timer');if(el){el.textContent=formatTime(EXAM.remaining);el.classList.toggle('warning',EXAM.remaining<=60)}}
 function formatTime(s){s=Math.max(0,Math.ceil(s));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 
@@ -464,7 +464,6 @@ function calculateResult(){
   let lc=l.filter(answerCorrect).length, rc=r.filter(answerCorrect).length, wc=w.filter(answerCorrect).length;
   const m=EXAM.data.meta||{}, lp=Number(m.listeningPoint??2.22), rp=Number(m.readingPoint??2.5), wp=Number(m.writingOrderPoint??6);
   
-  // Tổng hợp câu sai và câu chưa làm (tất cả các câu trắc nghiệm/sắp xếp có đáp án mà học viên trả lời sai hoặc bỏ trống)
   let allTestQuestions = [...l, ...r, ...w];
   let wrongAndUnanswered = [];
   allTestQuestions.forEach(q => {
@@ -503,10 +502,12 @@ function saveResultLocally(r){try{const key='cobi_hsk_results';const old=JSON.pa
 function sendResultToGoogleSheets(r){
   if(!GOOGLE_SHEETS_WEB_APP_URL) return;
   
-  // Tổng hợp đáp án phần viết (câu 86-100)
+  // Tổng hợp đáp án phần viết từ câu 86 đến 100
   let dapAnViet = [];
   for (let i = 86; i <= 100; i++) {
-    if (r.answers[i]) dapAnViet.push(`Câu ${i}: ${r.answers[i]}`);
+    if (r.answers[i] !== undefined && String(r.answers[i]).trim() !== '') {
+      dapAnViet.push(`Câu ${i}: ${r.answers[i]}`);
+    }
   }
 
   const payload = {
@@ -514,11 +515,11 @@ function sendResultToGoogleSheets(r){
     studentName: r.studentName,
     level: r.level,
     examId: r.examId,
-    listeningCorrectText: `${r.listeningCorrect}/${r.listeningTotal}`, // Số câu nghe đúng
-    readingCorrectText: `${r.readingCorrect}/${r.readingTotal}`,       // Số câu đọc đúng
-    writingAnswers: dapAnViet.join('\n'),                              // Đáp án phần viết
-    totalScore: r.autoScore,                                           // Tổng điểm
-    wrongAndUnanswered: r.wrongDetails                                 // Câu sai và chưa làm
+    listeningCorrectText: `${r.listeningCorrect}/${r.listeningTotal}`,
+    readingCorrectText: `${r.readingCorrect}/${r.readingTotal}`,
+    writingAnswers: dapAnViet.join(' | '), // Dùng dấu gạch đứng để ngăn cách các câu viết cho gọn gàng trong 1 ô
+    totalScore: r.autoScore,
+    wrongAndUnanswered: r.wrongDetails
   };
 
   fetch(GOOGLE_SHEETS_WEB_APP_URL,{
