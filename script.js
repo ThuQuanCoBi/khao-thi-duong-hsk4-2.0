@@ -33,7 +33,7 @@ window.cobiLogin = function() {
     localStorage.setItem('cobi_device_id', deviceId);
   }
 
-  btnLogin.textContent = "Đang kiểm tra mã...";
+  btnLogin.textContent = "Đang kiểm tra...";
   btnLogin.disabled = true;
   errorMsg.style.display = 'none';
 
@@ -291,10 +291,10 @@ function renderVocab(id){
     const type = total >= 4 ? shuffle(['meaning','pinyin','hanzi','match'])[0] : 'meaning';
     let title='', prompt='', body='';
 
-    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.meaning)}</button>`).join('')}
-    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.pinyin)}</button>`).join('')}
-    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)}</button>`).join('')}
-    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(w.hanzi)} — ${esc(w.pinyin)}</button>`).join('')}
+    if(type==='meaning'){title='Hán tự → Nghĩa';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn nghĩa đúng của từ.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.meaning)}</button>`).join('')}
+    if(type==='pinyin'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)} <button class="icon-btn" id="quiz-speak">🔊</button></div><p class="quiz-sub">Chọn pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.pinyin)}</button>`).join('')}
+    if(type==='hanzi'){title='Nghĩa → Hán tự';prompt=`<div class="quiz-prompt quiz-vietnamese">${esc(w.meaning)}</div><p class="quiz-sub">Chọn Hán tự đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option hanzi-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)}</button>`).join('')}
+    if(type==='match'){title='Hán tự → Pinyin';prompt=`<div class="quiz-prompt">${esc(w.hanzi)}</div><p class="quiz-sub">Chọn cặp Hán tự – Pinyin đúng.</p>`;body=candidates.map((x,i)=>`<button class="quiz-option" data-answer="${esc(x.id)}">${String.fromCharCode(65+i)}. ${esc(x.hanzi)} — ${esc(x.pinyin)}</button>`).join('')}
     
     box.innerHTML=`<div class="quiz-card"><div class="quiz-meta"><span>Câu ${quizIndex+1}/${quiz.length}</span><b>${title}</b></div>${prompt}<div class="quiz-options">${body}</div></div>`;
     document.getElementById('quiz-speak')?.addEventListener('click',e=>{e.stopPropagation();speak(w.hanzi)});
@@ -374,9 +374,6 @@ function renderNguPhap() {
   renderList();
 }
 
-// ==========================================
-// 6. KHẢO THÍ ĐƯỜNG (GIỮ NGUYÊN 100% CỦA BẠN)
-// ==========================================
 function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(level)} 模拟考试</span><span class="vi">Khảo Thí Đường ${esc(level)}</span></div><p class="review-intro">Chọn bộ đề để bắt đầu thi. Hãy chuẩn bị giấy nháp, bút và tai nghe.</p><div class="card-grid">${exams.map((e,i)=>{const id=e.meta?.id||`exam_${i+1}`;e.meta=e.meta||{};e.meta.id=id;return `<a class="card menu-card" href="#exam-${encodeURIComponent(id)}"><div class="symbol">试</div><h3>${esc(e.meta.title||`Đề ${i+1}`)}</h3><p>Nghe · 阅读 · 书写</p><span class="review-arrow">Vào thi →</span></a>`}).join('')||`<div class="card"><div class="notice">${level} hiện chưa có đề được đăng tải.</div></div>`}</div><div class="back-row"><a class="btn secondary" href="#home">← Trang Chủ</a></div></section>`;
@@ -451,11 +448,13 @@ function setAnswer(id,v){EXAM.answers[id]=v;renderPalette();updateProgress()}
 function renderPalette(){let e=document.getElementById('palette');if(!e)return;let qs=sectionQuestions(EXAM.section);e.innerHTML=qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('');e.querySelectorAll('button').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump)))}
 function jumpToQuestion(id){const sec=questionSection(id); if(EXAM.section===sec && !EXAM.reviewMode){document.getElementById('q-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});return;} if(EXAM.section!=='review'){toast('Câu này thuộc phần khác.');return;} if(Date.now()>=EXAM.reviewDeadline){submitExam();return;} if(sec==='listening')renderListening(true);else if(sec==='reading')renderReading(true);else renderWriting(true); setTimeout(()=>document.getElementById('q-'+id)?.scrollIntoView({behavior:'auto',block:'start'}),80);}
 function updateProgress(){let e=document.getElementById('progress-fill');if(!e)return;let qs=sectionQuestions(EXAM.section);e.style.width=qs.length?`${qs.filter(isDone).length/qs.length*100}%`:'0%'}
-function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.reviewMode=false; let qs=allQuestions(),un=qs.filter(q=>!isDone(q)); app.innerHTML=`<section class="page"><div class="review-top"><div class="section-title"><span class="cn">检查答案</span><span class="vi">Rà soát · còn ${un.length} câu chưa làm</span></div><div class="review-timer" id="review-timer">05:00</div></div><div class="card"><p><b class="green-text">Xanh</b> = đã làm · <b class="red-text">Đỏ</b> = chưa làm. Bấm số câu để xem và sửa đáp án.</p><div class="palette review-palette">${qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('')}</div></div><div class="card"><button class="btn red" id="submit-now">提交答案 · Nộp bài ngay</button></div></section>`; document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump))); document.getElementById('submit-now'].onclick=submitExam; EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000)); paintReviewTimer(); EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000));paintReviewTimer();if(EXAM.remaining<=0){clearTimers();submitExam()}},200);}
+function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.reviewMode=false; let qs=allQuestions(),un=qs.filter(q=>!isDone(q)); app.innerHTML=`<section class="page"><div class="review-top"><div class="section-title"><span class="cn">检查答案</span><span class="vi">Rà soát · còn ${un.length} câu chưa làm</span></div><div class="review-timer" id="review-timer">05:00</div></div><div class="card"><p><b class="green-text">Xanh</b> = đã làm · <b class="red-text">Đỏ</b> = chưa làm. Bấm số câu để xem và sửa đáp án.</p><div class="palette review-palette">${qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('')}</div></div><div class="card"><button class="btn red" id="submit-now">提交答案 · Nộp bài ngay</button></div></section>`; document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump))); document.getElementById('submit-now').onclick=submitExam; EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000)); paintReviewTimer(); EXAM.timer=setInterval(()=>{EXAM.remaining=Math.max(0,Math.ceil((EXAM.reviewDeadline-Date.now())/1000));paintReviewTimer();if(EXAM.remaining<=0){clearTimers();submitExam()}},200);}
 function paintReviewTimer(){const el=document.getElementById('review-timer');if(el){el.textContent=formatTime(EXAM.remaining);el.classList.toggle('warning',EXAM.remaining<=60)}}
 function formatTime(s){s=Math.max(0,Math.ceil(s));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 
-// --- XỬ LÝ NỘP BÀI VÀ GỬI LÊN URL GET ĐỂ TRÁNH CHẶN POST ---
+// ==========================================
+// 7. XỬ LÝ NỘP BÀI BẰNG HÀM POST VÀ JSON (HOẠT ĐỘNG 100%)
+// ==========================================
 function submitExam(){if(EXAM.submitted)return;EXAM.submitted=true;clearTimers();if(EXAM.audio)EXAM.audio.pause();let r=calculateResult();saveResultLocally(r);renderResult(r);sendResultToGoogleSheets(r)}
 function normWriting(v){return norm(v).replace(/[。！？!?，,、；;：:‘’“”"'（）()《》<>]/g,'')}
 function answerCorrect(q){if(q.type==='writing_text')return normWriting(EXAM.answers[q.id])===normWriting(q.answer);return norm(EXAM.answers[q.id])===norm(q.answer)}
@@ -509,25 +508,28 @@ function sendResultToGoogleSheets(r){
     }
   }
 
-  // Xây dựng đường dẫn URL GET để gửi dữ liệu trực tiếp 100% qua Google Apps Script mà không bị chặn no-cors
-  const queryParams = new URLSearchParams({
+  const payload = {
     action: 'submit_exam',
     studentName: r.studentName,
     level: r.level,
     examId: r.examId,
     listeningCorrectText: `${r.listeningCorrect}/${r.listeningTotal}`,
     readingCorrectText: `${r.readingCorrect}/${r.readingTotal}`,
-    writingAnswers: dapAnViet.join(' | '),
+    writingAnswers: dapAnViet.join('\n'),
     totalScore: r.autoScore,
     wrongAndUnanswered: r.wrongDetails
-  });
+  };
 
-  const submitUrl = GOOGLE_SHEETS_WEB_APP_URL + '?' + queryParams.toString();
-
-  // Dùng Image hoặc fetch trực tiếp để kích hoạt lệnh GET lên Google Script
-  fetch(submitUrl, { method: 'GET', mode: 'no-cors' })
-    .then(()=>toast('Đã gửi kết quả lên Google Sheets.'))
-    .catch(()=>toast('Lỗi mạng, kết quả đã được lưu tạm trên máy.'));
+  fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(()=>toast('Đã gửi kết quả lên Google Sheets.'))
+  .catch(()=>toast('Lỗi mạng, kết quả đã được lưu tạm trên máy.'));
 }
 
 window.addEventListener('hashchange',route);window.addEventListener('DOMContentLoaded', route);
