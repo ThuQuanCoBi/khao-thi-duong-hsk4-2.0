@@ -5,6 +5,14 @@ const app=document.getElementById('app'),toastEl=document.getElementById('toast'
 const EXAM={data:null,section:'idle',studentName:'',timer:null,remaining:0,answers:{},submitted:false,audio:null,audioTimer:null,reviewMode:false,reviewDeadline:0};
 let apiDataCache = null;
 
+// --- CHỐNG THOÁT TRANG NHẦM KHI ĐANG THI ---
+window.addEventListener('beforeunload', function (e) {
+  if (EXAM.section !== 'idle' && !EXAM.submitted) {
+    e.preventDefault();
+    e.returnValue = ''; 
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('cobi_unlocked') === 'true') {
     const loginScreen = document.getElementById('login-screen');
@@ -88,7 +96,19 @@ function route(){
 function getExamModules(){return Object.values(window.CoBiData?.exams||{}).sort((a,b)=>String(a.meta?.level||'').localeCompare(String(b.meta?.level||''),undefined,{numeric:true}) || String(a.meta?.title||'').localeCompare(String(b.meta?.title||'')));}
 function findVocab(id){return window.CoBiData?.vocab?.[id]||null}
 function findExam(id){return window.CoBiData?.exams?.[id]||null}
-function placeholder(t,d){app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(t)}</span><span class="vi">${esc(d)}</span></div><div class="card"><div class="notice">Lỗi lấy dữ liệu hoặc dữ liệu trống. Hãy kiểm tra lại Google Sheets.</div><div class="back-row" style="text-align:center"><a class="btn secondary" href="#home">← Về Trang Chủ</a></div></div></section>`}
+function placeholder(t,d){app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(t)}</span><span class="vi">${esc(d)}</span></div><div class="card"><div class="notice">Hệ thống chưa tải xong dữ liệu hoặc dữ liệu trống. Hãy tải lại trang (F5) hoặc kiểm tra mạng.</div><div class="back-row" style="text-align:center"><a class="btn secondary" href="#home">← Về Trang Chủ</a></div></div></section>`}
+
+// --- HÀM TẢI LẠI DỮ LIỆU THỦ CÔNG KHI GIÁO VIÊN CÓ UPDATE ---
+window.forceRefreshData = function() {
+  localStorage.removeItem('cobi_api_cache');
+  localStorage.removeItem('cobi_api_time');
+  apiDataCache = null;
+  toast('Đang cập nhật dữ liệu mới nhất từ Google Sheets...');
+  fetchSheetData(() => {
+    toast('Đã cập nhật thành công!');
+    route(); // Load lại giao diện hiện tại
+  });
+};
 
 function renderHome(){
   app.innerHTML=`
@@ -99,6 +119,8 @@ function renderHome(){
       <h2>一朝入书馆，一生伴汉语</h2>
       <p>Không gian chuyên biệt luyện thi, học từ vựng và ngữ pháp HSK cấp 4.</p>
       <div class="hero-ornament">— ❖ —</div>
+      <!-- NÚT CẬP NHẬT DỮ LIỆU ĐƯỢC THÊM VÀO ĐÂY -->
+      <button onclick="window.forceRefreshData()" class="btn secondary" style="margin-top: 15px; font-size: 14px; padding: 8px 16px; background: rgba(255,255,255,0.4); border: 1px solid #d8c9ad; color: #756c5e;">🔄 Tải Dữ Liệu Mới Nhất</button>
     </div>
   </section>
   <section class="page" style="padding-top:0">
@@ -123,12 +145,33 @@ function renderHome(){
   </section>`;
 }
 
+// --- TỐI ƯU FETCH: BỘ NHỚ ĐỆM (CACHE) 3 TIẾNG GIẢM TẢI SERVER ---
 function fetchSheetData(callback) {
   if (apiDataCache) { callback(); return; }
+  
+  const cached = localStorage.getItem('cobi_api_cache');
+  const cacheTime = localStorage.getItem('cobi_api_time');
+  
+  // Cache sống trong 3 tiếng (10800000 ms). Quá 3 tiếng tự động lấy mới.
+  if (cached && cacheTime && (Date.now() - cacheTime < 10800000)) {
+    try {
+      const data = JSON.parse(cached);
+      apiDataCache = data;
+      window.CoBiData = window.CoBiData || {};
+      window.CoBiData.vocab = window.CoBiData.vocab || {};
+      if(data.vocab) window.CoBiData.vocab['hsk4'] = data.vocab;
+      callback();
+      return;
+    } catch(e) {}
+  }
+
   app.innerHTML = `<section class="page"><div class="section-title"><span class="cn">Đang tải...</span><span class="vi">Đang kết nối Tàng Thư Các...</span></div></section>`;
   fetch(GOOGLE_SHEETS_WEB_APP_URL)
     .then(res => res.json())
     .then(data => {
+      localStorage.setItem('cobi_api_cache', JSON.stringify(data));
+      localStorage.setItem('cobi_api_time', Date.now());
+
       apiDataCache = data;
       window.CoBiData = window.CoBiData || {};
       window.CoBiData.vocab = window.CoBiData.vocab || {};
@@ -136,7 +179,7 @@ function fetchSheetData(callback) {
       callback();
     })
     .catch(err => {
-      placeholder('Lỗi mạng', 'Không thể kết nối với Google Sheets.');
+      placeholder('Lỗi mạng', 'Mạng yếu hoặc không thể kết nối với Google Sheets.');
     });
 }
 window.fetchSheetData = fetchSheetData;
@@ -378,18 +421,44 @@ function renderLevelHome(level){
   const exams=getExamModules().filter(e=>String(e.meta?.level||'').toUpperCase()===level);
   app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(level)} 模拟考试</span><span class="vi">Khảo Thí Đường ${esc(level)}</span></div><p class="review-intro">Chọn bộ đề để bắt đầu thi. Hãy chuẩn bị giấy nháp, bút và tai nghe.</p><div class="card-grid">${exams.map((e,i)=>{const id=e.meta?.id||`exam_${i+1}`;e.meta=e.meta||{};e.meta.id=id;return `<a class="card menu-card" href="#exam-${encodeURIComponent(id)}"><div class="symbol">试</div><h3>${esc(e.meta.title||`Đề ${i+1}`)}</h3><p>Nghe · 阅读 · 书写</p><span class="review-arrow">Vào thi →</span></a>`}).join('')||`<div class="card"><div class="notice">${level} hiện chưa có đề được đăng tải.</div></div>`}</div><div class="back-row"><a class="btn secondary" href="#home">← Trang Chủ</a></div></section>`;
 }
+
 function renderExamHome(id){
   const data=findExam(id);if(!data){placeholder('Không tìm thấy đề','File đề chưa được đăng ký hoặc đường dẫn không đúng.');return;}EXAM.data=data;
   const meta=data.meta||{}, counts=[['听力',data.listening?.length||0],['阅读',data.reading?.length||0],['书写',(data.writingOrder?.length||0)+(data.writingPicture?.length||0)]];
   const savedStudentName = localStorage.getItem('cobi_student_name') || '';
-  app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(meta.level||'HSK')} 模拟考试</span><span class="vi">${esc(meta.title||'Bộ đề')}</span></div><div class="notice">${counts.map(x=>`<strong>${x[0]}:</strong>${x[1]}题`).join(' · ')}${meta.reviewMinutes?` · <strong>检查:</strong> ${meta.reviewMinutes} phút`:''}</div><div class="card-grid">${counts.map(x=>`<div class="card"><h3>${x[0]} · ${x[1]}题</h3><p>${x[0]==='听力'?'判断正误 + 选择题.':x[0]==='阅读'?'选词填空 + 排列顺序 + 阅读理解.':'完成句子 + 看图造句.'}</p></div>`).join('')}</div><div class="card start-card"><label><strong>姓名 · Họ tên học viên</strong></label><input id="student-name" placeholder="Nhập họ tên" value="${esc(savedStudentName)}"><button class="btn red" id="start-exam">开始考试 · Bắt đầu</button></div><div class="back-row"><a class="btn secondary" href="#hsk4">← Quay lại danh sách đề thi</a></div></section>`;
+  
+  // Kiểm tra bài lưu nháp
+  const draft = localStorage.getItem('cobi_draft_' + data.meta.id);
+  const draftNotice = draft ? `<div class="notice" style="margin-top:15px; border-color:var(--green); background:#edf4ed;">Phát hiện bài làm dở dang trước đó. Bấm Bắt đầu để làm tiếp tục.</div>` : '';
+
+  app.innerHTML=`<section class="page"><div class="section-title"><span class="cn">${esc(meta.level||'HSK')} 模拟考试</span><span class="vi">${esc(meta.title||'Bộ đề')}</span></div><div class="notice">${counts.map(x=>`<strong>${x[0]}:</strong>${x[1]}题`).join(' · ')}${meta.reviewMinutes?` · <strong>检查:</strong> ${meta.reviewMinutes} phút`:''}</div><div class="card-grid">${counts.map(x=>`<div class="card"><h3>${x[0]} · ${x[1]}题</h3><p>${x[0]==='听力'?'判断正误 + 选择题.':x[0]==='阅读'?'选词填空 + 排列顺序 + 阅读理解.':'完成句子 + 看图造句.'}</p></div>`).join('')}</div><div class="card start-card"><label><strong>姓名 · Họ tên học viên</strong></label><input id="student-name" placeholder="Nhập họ tên" value="${esc(savedStudentName)}"><button class="btn red" id="start-exam">开始考试 · Bắt đầu</button>${draftNotice}</div><div class="back-row"><a class="btn secondary" href="#hsk4">← Quay lại danh sách đề thi</a></div></section>`;
   document.getElementById('start-exam').onclick=()=>startExam(data);
 }
 function allQuestions(){return [...(EXAM.data.listening||[]),...(EXAM.data.reading||[]),...(EXAM.data.writingOrder||[]),...(EXAM.data.writingPicture||[])]}
 function sectionQuestions(section){if(section==='listening')return EXAM.data.listening||[];if(section==='reading')return EXAM.data.reading||[];if(section==='writing')return [...(EXAM.data.writingOrder||[]),...(EXAM.data.writingPicture||[])];return allQuestions()}
 function questionSection(id){const s=EXAM.data?.meta?.sections;if(s){for(const [name,range] of Object.entries(s)){if(id>=range[0]&&id<=range[1])return name}}if(id<=45)return'listening';if(id<=85)return'reading';return'writing'}
 function isDone(q){return EXAM.answers[q.id]!==undefined&&String(EXAM.answers[q.id]).trim()!==''}
-function startExam(data){let n=document.getElementById('student-name').value.trim();if(!n)return toast('Vui lòng nhập họ tên học viên.');EXAM.data=data;EXAM.studentName=n;EXAM.answers={};EXAM.submitted=false;EXAM.section='listening';EXAM.reviewMode=false;renderListening()}
+
+function startExam(data){
+  let n=document.getElementById('student-name').value.trim();
+  if(!n)return toast('Vui lòng nhập họ tên học viên.');
+  EXAM.data=data;
+  EXAM.studentName=n;
+  
+  // Tải lại bài nháp nếu có
+  try {
+      const draft = localStorage.getItem('cobi_draft_' + data.meta.id);
+      EXAM.answers = draft ? JSON.parse(draft) : {};
+  } catch(e) {
+      EXAM.answers = {};
+  }
+  
+  EXAM.submitted=false;
+  EXAM.section='listening';
+  EXAM.reviewMode=false;
+  renderListening();
+}
+
 function clearTimers(){clearInterval(EXAM.timer);clearInterval(EXAM.audioTimer);EXAM.timer=null;EXAM.audioTimer=null}
 function startClock(seconds,onEnd){setPhaseTimer(seconds,onEnd)}
 function startAudioClock(){clearInterval(EXAM.audioTimer);EXAM.audioTimer=setInterval(()=>{if(EXAM.audio&&!EXAM.audio.paused&&isFinite(EXAM.audio.duration)){EXAM.remaining=Math.max(0,Math.ceil(EXAM.audio.duration-EXAM.audio.currentTime));paintTimer()}},250)}
@@ -444,7 +513,17 @@ function startReview(){
 function questionElement(q){const c=document.createElement('article');c.className='question-card';c.id='q-'+q.id;let body='';if(q.type==='tf'){body=`<div class="statement">★ ${esc(q.statement)}</div>${options(q,q.options)}`}else if(q.type==='mcq'){body=options(q,q.options)}else if(q.type==='cloze'){body=(q.example?`<div class="example"><strong>例如：</strong>${esc(q.example)}</div>`:'')+`<div class="cloze-text">${esc(q.question)}</div>${options(q,q.options)}`}else if(q.type==='order'){const keys=Array.isArray(q.parts)?q.parts.map((_,i)=>String.fromCharCode(65+i)):Object.keys(q.parts);const labels=Array.isArray(q.parts)?q.parts:Object.values(q.parts);const saved=String(EXAM.answers[q.id]||'').split('').filter(Boolean);const ordered=saved.length?saved:keys;body=`<div class="order-parts">${labels.map((v,i)=>`<div class="order-part"><b>${keys[i]}</b><span>${esc(v)}</span></div>`).join('')}</div><p class="drag-hint">拖动下方字母排列顺序 · Có thể kéo thả hoặc bấm để đổi vị trí</p><div class="order-builder" data-order="${q.id}">${ordered.map(k=>`<button type="button" class="order-token" draggable="true" data-token="${k}">${k}</button>`).join('')}</div><input type="hidden" class="answer-input" data-answer="${q.id}" value="${esc(ordered.join(''))}">`}else if(q.type==='reading'){body=`<div class="passage">${esc(q.passage)}</div><div class="question-text">${esc(q.question)}</div>${options(q,q.options)}`}else if(q.type==='writing_text'){body=`<div class="writing-words"><b>词语：</b>${(q.words||[]).map(w=>`<span class="word-chip">${esc(w)}</span>`).join(' ')}</div><div class="question-text">${esc(q.question||'完成句子')}</div><input class="answer-input writing-text-answer" data-answer="${q.id}" value="${esc(EXAM.answers[q.id]||'')}" placeholder="请输入完整句子">`}else if(q.type==='picture'){body=`<div class="picture-instruction">看图，用词“<strong>${esc(q.word)}</strong>”造句</div>${q.content?`<img class="writing-picture-item" src="${esc(q.content)}" alt="第${q.id}题">`:''}<input class="answer-input picture-answer" data-answer="${q.id}" value="${esc(EXAM.answers[q.id]||'')}" placeholder="请输入句子">`};c.innerHTML=`<div class="q-head"><span class="q-number">第 ${q.id} 题</span><span class="q-type">${typeName(q.type)}</span></div>${body}`;c.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>setAnswer(q.id,r.value));c.querySelectorAll('.answer-input:not([type=hidden])').forEach(i=>i.oninput=()=>setAnswer(q.id,i.value));const builder=c.querySelector('.order-builder');if(builder){let dragged=null;const sync=()=>{const order=[...builder.querySelectorAll('.order-token')].map(b=>b.dataset.token).join('');const input=c.querySelector('.answer-input');input.value=order;setAnswer(q.id,order)};builder.querySelectorAll('.order-token').forEach(btn=>{btn.addEventListener('dragstart',e=>{dragged=btn;btn.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',btn.dataset.token)});btn.addEventListener('dragend',()=>{dragged=null;btn.classList.remove('dragging');builder.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'))});btn.addEventListener('dragover',e=>{e.preventDefault();btn.classList.add('drag-over');e.dataTransfer.dropEffect='move'});btn.addEventListener('dragleave',()=>btn.classList.remove('drag-over'));btn.addEventListener('drop',e=>{e.preventDefault();btn.classList.remove('drag-over');if(!dragged||dragged===btn)return;const rect=btn.getBoundingClientRect();builder.insertBefore(dragged,e.clientX>rect.left+rect.width/2?btn.nextSibling:btn);sync()});btn.addEventListener('click',()=>{const arr=[...builder.querySelectorAll('.order-token')];const idx=arr.indexOf(btn);if(idx>0){builder.insertBefore(btn,arr[idx-1]);sync()}else if(arr.length>1){builder.appendChild(btn);sync()}})})}return c}
 function typeName(t){return({tf:'判断正误',mcq:'选择题',cloze:'选词填空',reading:'阅读理解',order:'排列顺序',writing_text:'完成句子',picture:'看图写句'})[t]||''}
 function options(q,o){return `<div class="options">${Object.entries(o).map(([k,v])=>`<label class="option"><input type="radio" name="q-${q.id}" value="${k}" ${EXAM.answers[q.id]===k?'checked':''}><span><b>${k}.</b>${esc(v)}</span></label>`).join('')}</div>`}
-function setAnswer(id,v){EXAM.answers[id]=v;renderPalette();updateProgress()}
+
+// --- LƯU NHÁP MỖI KHI HỌC VIÊN CHỌN ĐÁP ÁN ---
+function setAnswer(id,v){
+  EXAM.answers[id]=v;
+  if(EXAM.data && EXAM.data.meta && EXAM.data.meta.id) {
+     localStorage.setItem('cobi_draft_' + EXAM.data.meta.id, JSON.stringify(EXAM.answers));
+  }
+  renderPalette();
+  updateProgress();
+}
+
 function renderPalette(){let e=document.getElementById('palette');if(!e)return;let qs=sectionQuestions(EXAM.section);e.innerHTML=qs.map(q=>`<button class="${isDone(q)?'done':''}" data-jump="${q.id}">${q.id}</button>`).join('');e.querySelectorAll('button').forEach(b=>b.onclick=()=>jumpToQuestion(Number(b.dataset.jump)))}
 function jumpToQuestion(id){const sec=questionSection(id); if(EXAM.section===sec && !EXAM.reviewMode){document.getElementById('q-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});return;} if(EXAM.section!=='review'){toast('Câu này thuộc phần khác.');return;} if(Date.now()>=EXAM.reviewDeadline){submitExam();return;} if(sec==='listening')renderListening(true);else if(sec==='reading')renderReading(true);else renderWriting(true); setTimeout(()=>document.getElementById('q-'+id)?.scrollIntoView({behavior:'auto',block:'start'}),80);}
 function updateProgress(){let e=document.getElementById('progress-fill');if(!e)return;let qs=sectionQuestions(EXAM.section);e.style.width=qs.length?`${qs.filter(isDone).length/qs.length*100}%`:'0%'}
@@ -452,10 +531,25 @@ function renderReview(){clearTimers(); goTop(); EXAM.section='review'; EXAM.revi
 function paintReviewTimer(){const el=document.getElementById('review-timer');if(el){el.textContent=formatTime(EXAM.remaining);el.classList.toggle('warning',EXAM.remaining<=60)}}
 function formatTime(s){s=Math.max(0,Math.ceil(s));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 
-// ==========================================
-// 7. XỬ LÝ NỘP BÀI BẰNG HÀM POST VÀ JSON (HOẠT ĐỘNG 100%)
-// ==========================================
-function submitExam(){if(EXAM.submitted)return;EXAM.submitted=true;clearTimers();if(EXAM.audio)EXAM.audio.pause();let r=calculateResult();saveResultLocally(r);renderResult(r);sendResultToGoogleSheets(r)}
+// --- NỘP BÀI VÀ XÓA DỮ LIỆU NHÁP ---
+function submitExam(){
+  if(EXAM.submitted)return;
+  EXAM.submitted=true;
+  clearTimers();
+  if(EXAM.audio) EXAM.audio.pause();
+  
+  let r = calculateResult();
+  saveResultLocally(r);
+  
+  // Xóa nháp khi đã nộp bài thành công
+  if(EXAM.data && EXAM.data.meta && EXAM.data.meta.id) {
+      localStorage.removeItem('cobi_draft_' + EXAM.data.meta.id);
+  }
+  
+  renderResult(r);
+  sendResultToGoogleSheets(r);
+}
+
 function normWriting(v){return norm(v).replace(/[。！？!?，,、；;：:‘’“”"'（）()《》<>]/g,'')}
 function answerCorrect(q){if(q.type==='writing_text')return normWriting(EXAM.answers[q.id])===normWriting(q.answer);return norm(EXAM.answers[q.id])===norm(q.answer)}
 function calculateResult(){
