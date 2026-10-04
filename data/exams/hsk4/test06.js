@@ -107,8 +107,8 @@ const HSK4_TEST06 = {
   "writingOrder": [
     { "id": 86, "type": "writing_text", "question": "完成句子", "words": ["你", "关了", "把窗户", "吗"], "answer": "你把窗户关了吗？" },
     { "id": 87, "type": "writing_text", "question": "完成句子", "words": ["拉近", "了", "人与人之间的", "手机", "距离"], "answer": "手机拉近了人与人之间的距离。" },
-    { "id": 88, "type": "writing_text", "question": "完成句子", "words": ["去年秋天", "我孙子出生", "是", "的"], "answer": "我孙子是去年秋天出生的。" },
-    { "id": 89, "type": "writing_text", "question": "完成句子", "words": ["打针好", "比吃药", "效果"], "answer": "打针比吃药效果好。" },
+    { "id": 88, "type": "writing_text", "question": "完成句子", "words": ["去年秋天", "我孙子", "出生", "是", "的"], "answer": "我孙子是去年秋天出生的。" },
+    { "id": 89, "type": "writing_text", "question": "完成句子", "words": ["打针", "好", "比吃药", "效果"], "answer": "打针比吃药效果好。" },
     { "id": 90, "type": "writing_text", "question": "完成句子", "words": ["这个城市", "出租车的数量", "决定", "增加"], "answer": "这个城市决定增加出租车的数量。" },
     { "id": 91, "type": "writing_text", "question": "完成句子", "words": ["非常", "大", "影响范围", "这场降水", "的"], "answer": "这场降水的影响范围非常大。" },
     { "id": 92, "type": "writing_text", "question": "完成句子", "words": ["工具书", "是", "一本", "现代汉语词典"], "answer": "现代汉语词典是一本工具书。" },
