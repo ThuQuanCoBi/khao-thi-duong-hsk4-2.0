@@ -35,11 +35,11 @@ const HSK4_TEST10 = {
     { "id": 17, "type": "mcq", "options": { "A": "会开车", "B": "路太远", "C": "不会迟到", "D": "可能晚点儿" }, "answer": "C" },
     { "id": 18, "type": "mcq", "options": { "A": "刚跑完", "B": "已经瘦了", "C": "时间太早", "D": "不想跑步了" }, "answer": "D" },
     { "id": 19, "type": "mcq", "options": { "A": "律师", "B": "警察", "C": "修暖气的", "D": "卖啤酒" }, "answer": "C" },
-    { "id": 20, "type": "mcq", "options": { "A": "在睡觉", "B": "受伤了", "C": "感冒了", "D": "忘记" }, "answer": "B" },
+    { "id": 20, "type": "mcq", "options": { "A": "在睡觉", "B": "受伤了", "C": "感冒了", "D": "忘记比赛了" }, "answer": "B" },
     { "id": 21, "type": "mcq", "options": { "A": "玩具", "B": "熊猫", "C": "袜子", "D": "信用卡" }, "answer": "A" },
     { "id": 22, "type": "mcq", "options": { "A": "三点", "B": "四点", "C": "三点半", "D": "四点半" }, "answer": "C" },
     { "id": 23, "type": "mcq", "options": { "A": "很饿", "B": "很渴", "C": "很冷", "D": "很热" }, "answer": "D" },
-    { "id": 24, "type": "mcq", "options": { "A": "丢了", "B": "坏了", "C": "没电了", "D": "关机" }, "answer": "D" },
+    { "id": 24, "type": "mcq", "options": { "A": "丢了", "B": "坏了", "C": "没电了", "D": "关机了" }, "answer": "D" },
     { "id": 25, "type": "mcq", "options": { "A": "这个人太麻烦", "B": "想了解他", "C": "冷静点儿", "D": "不感兴趣" }, "answer": "D" },
     { "id": 26, "type": "mcq", "options": { "A": "书", "B": "文件", "C": "光盘", "D": "被子" }, "answer": "B" },
     { "id": 27, "type": "mcq", "options": { "A": "海边", "B": "医院", "C": "学校", "D": "邮局" }, "answer": "C" },
@@ -60,7 +60,7 @@ const HSK4_TEST10 = {
     { "id": 42, "type": "mcq", "options": { "A": "学校", "B": "剧院", "C": "公司", "D": "卧室" }, "answer": "A" },
     { "id": 43, "type": "mcq", "options": { "A": "训练", "B": "上课", "C": "准备比赛", "D": "开家长会" }, "answer": "D" },
     { "id": 44, "type": "mcq", "options": { "A": "面试", "B": "采访", "C": "打电话", "D": "拍电影" }, "answer": "B" },
-    { "id": 45, "type": "mcq", "options": { "A": "对手", "B": "邻居", "C": "朋友", "D": "同事" }, "answer": "C" }
+    { "id": 45, "type": "mcq", "options": { "A": "会跳舞", "B": "很浪漫", "C": "演得好", "D": "经验丰富" }, "answer": "C" }
   ],
   "reading": [
     { "id": 46, "type": "cloze", "question": "小李和他的女朋友是（ ） 别人介绍认识的。", "options": { "A": "申请", "B": "骗", "C": "民族", "D": "坚持", "E": "稍微", "F": "通过" }, "answer": "F" },
